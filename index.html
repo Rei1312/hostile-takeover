@@ -588,16 +588,18 @@ const LEVELS = [
 let score = 0, hiscore = +(localStorage.getItem('ht-hiscore') || 0);
 let lives, levelT, player, shots, missiles, ebullets, enemies, caps, parts, rings, pops, banners, boss;
 let shake = 0, endT = 0, perfT = 0, ambT = 8, winT = 0;
+let heat = 1;                 // dynamic difficulty: 0.55 (struggling) .. 1.6 (dominating)
 const POWERS = ['SPEED','MISSILE','DOUBLE','LASER','OPTION','SHIELD'];
 
 function reset(){
   score = 0; lives = 4; levelT = 0; boss = null; shake = 0; endT = 0; ambT = 8; winT = 0; paused = false;
+  heat = 1;
   shots = []; missiles = []; ebullets = []; enemies = []; caps = [];
   parts = []; rings = []; pops = []; banners = [];
   player = {
     x: 50, y: H/2, alive: true, respawn: 0, invuln: 2.5, bank: 0, py: undefined,
     lv: {SPEED:0, MISSILE:0, DOUBLE:0, LASER:0, OPTION:0, SHIELD:0},
-    weapon: 'none', shield: 0,
+    weapon: 'none', shield: 0, shieldCd: 0, shieldT: 0,
     meter: 0, fireT: 0, mslT: 0, options: [], trail: [],
   };
   spawned.length = 0;
@@ -932,7 +934,7 @@ function spawnVP(y0, drop){
       e.y += Math.sin(e.t*2)*14*dt;
       e.fire -= dt;
       if (e.fire <= 0 && e.x < W-40 && player.alive){
-        e.fire = 1.5;
+        e.fire = 1.5 * (1.9 - heat*.9);
         const a = Math.atan2(player.y - e.y, player.x - e.x);
         ebullets.push({x:e.x, y:e.y+4, vx:Math.cos(a)*88*DIFF, vy:Math.sin(a)*88*DIFF, coin:true, r:3, t:0});
         sfx.coin();
@@ -947,7 +949,7 @@ function spawnLawyer(y0, drop){
       if (e.y < 30 || e.y > GROUND-30) e.dir *= -1;
       e.fire -= dt;
       if (e.fire <= 0 && e.x < W-60){
-        e.fire = 2.2;
+        e.fire = 2.2 * (1.9 - heat*.9);
         for (let k = -1; k <= 1; k++)
           ebullets.push({x:e.x-8, y:e.y, vx:-95*DIFF, vy:k*38*DIFF, coin:false, r:3, t:0});
       }
@@ -970,7 +972,7 @@ function spawnTurret(drop){
       e.t += dt; e.x -= 30*dt;
       e.fire -= dt;
       if (e.fire <= 0 && e.x < W-20 && e.x > 30 && player.alive){
-        e.fire = 2;
+        e.fire = 2 * (1.9 - heat*.9);
         const a = Math.atan2(player.y - e.y, player.x - e.x);
         ebullets.push({x:e.x, y:e.y-8, vx:Math.cos(a)*100*DIFF, vy:Math.sin(a)*100*DIFF, coin:true, r:3, t:0});
         sfx.coin();
@@ -1057,7 +1059,7 @@ function spawnTurretC(){                               // ceiling-mounted HR tur
       e.t += dt; e.x -= 30*dt;
       e.fire -= dt;
       if (e.fire <= 0 && e.x < W-20 && e.x > 30 && player.alive){
-        e.fire = 2;
+        e.fire = 2 * (1.9 - heat*.9);
         const a = Math.atan2(player.y - e.y, player.x - e.x);
         ebullets.push({x:e.x, y:e.y+8, vx:Math.cos(a)*100*DIFF, vy:Math.sin(a)*100*DIFF, coin:true, r:3, t:0});
         sfx.coin();
@@ -1192,8 +1194,9 @@ function bossAttack(b, kind){
     banner('UPLOADING BOTS...', .9);
     spawnSwarm(60 + Math.random()*(GROUND-140));
   }
-  if (b.type === 'algo') b.atk = kind === 'sweep' ? 4.4 : (b.phase === 2 ? 1.6 : 2.3);
-  else b.atk = b.phase === 2 ? 1.4 : 2;
+  const pace = 1.45 - heat*.45;                          // dynamic difficulty on boss cadence
+  if (b.type === 'algo') b.atk = (kind === 'sweep' ? 4.4 : (b.phase === 2 ? 1.6 : 2.3)) * pace;
+  else b.atk = (b.phase === 2 ? 1.4 : 2) * pace;
 }
 function pickBossAttack(b){
   const r = Math.random();
@@ -1377,6 +1380,7 @@ function fireFrom(x, y){
 function playerDie(){
   const p = player;
   p.alive = false; p.respawn = 1.6; p.shield = 0;
+  heat = Math.max(.55, heat - .3);                      // ease off after a death
   lives--; shake = .4;
   burst(p.x, p.y, CYAN, 22); burst(p.x, p.y, WHT, 10); ring(p.x, p.y, 30);
   sfx.bigBoom();
@@ -1385,11 +1389,20 @@ function playerDie(){
 function hitPlayer(){
   const p = player;
   if (!p.alive || p.invuln > 0) return;
-  if (p.shield > 0){ p.shield--; sfx.hit(); burst(p.x+10, p.y, CYAN, 6); return; }
+  if (p.shield > 0){
+    if (p.shieldCd > 0) return;                    // force field is already soaking this beam tick
+    p.shield--; p.shieldCd = .3;
+    sfx.hit(); burst(p.x+10, p.y, CYAN, 6);
+    if (p.shield === 0) pop(p.x, p.y - 16, 'SHIELD DOWN');
+    return;
+  }
   playerDie();
 }
 function killEnemy(e){
   addScore(e.score);
+  heat = Math.min(1.6, heat + .008);                    // doing well -> the market fights back
+  if (!e.drop && heat < .85 && Math.random() < .12)     // struggling -> mercy capsule
+    caps.push({x: e.x, y: e.y, t: 0});
   pop(e.x, e.y - 12, e.kind === 'popup' ? 'AD CLOSED +50' : '+' + e.score);
   if (e.kind === 'popup'){
     burst(e.x, e.y, '#C9D4E4', 8); ring(e.x, e.y, 12); sfx.rack();
@@ -1421,9 +1434,10 @@ function update(dt){
   for (const t of TIMELINE) if (levelT >= t[0] && !spawned.includes(t)){ spawned.push(t); t[1](); }
   // ambient pressure: constant light spawns between set pieces
   if (levelT > 20 && levelT < (level === 2 ? 193 : 240) && !boss){
+    heat += (1 - heat) * dt * .02;                      // drift back to neutral
     ambT -= dt;
-    if (ambT <= 0){
-      ambT = 3.2 + Math.random()*3;
+    if (ambT <= 0 && enemies.length < 14){              // cap on-screen chaos
+      ambT = (3.2 + Math.random()*3) / heat;
       const r = Math.random();
       if (r < .34) spawnDrone(30 + Math.random()*(GROUND-80), 0, Math.random() < .18);
       else if (r < .5) spawnInfluencer(40 + Math.random()*140, false);
@@ -1450,6 +1464,15 @@ function update(dt){
     if (p.respawn <= 0){ p.alive = true; p.x = 50; p.y = H/2; p.invuln = 2.5; p.py = undefined; keys.vx = keys.vy = 0; }
   }
   if (p.invuln > 0) p.invuln -= dt;
+  if (p.shieldCd > 0) p.shieldCd -= dt;
+  if (p.alive && p.shield > 0){                    // the force field deprecates over time
+    p.shieldT += dt;
+    if (p.shieldT > 6){
+      p.shieldT = 0; p.shield--;
+      burst(p.x+10, p.y, '#5C6C8C', 4);
+      if (p.shield === 0) pop(p.x, p.y - 16, 'SHIELD DEPRECATED');
+    }
+  }
 
   if (p.alive){
     const spd = 110 + p.lv.SPEED*35;
@@ -1538,7 +1561,10 @@ function update(dt){
       if (m.dead) continue;
       if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; e.flash = .07; m.dead = true; }
     }
-    if (p.alive && !e.noContact && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < hy+4) hitPlayer();
+    if (p.alive && !e.noContact && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < hy+4){
+      if (p.shield > 0 && p.invuln <= 0){ e.hp -= 3; e.flash = .07; }   // force field rams
+      hitPlayer();
+    }
   }
   shots = shots.filter(s => !s.dead);
   missiles = missiles.filter(m => !m.dead);
@@ -2603,6 +2629,16 @@ window.__test = () => {
   caps.push({x: player.x, y: player.y, t: 0});
   update(1/60);
   res.powersLevelAndSkip = s1 && player.meter === 2;    // SPEED maxed -> lands on MISSILE
+  // J: force field soaks rapid beam ticks (one charge per cooldown, no life lost)
+  player.alive = true; player.invuln = 0; player.shield = 2; player.shieldCd = 0;
+  const l3 = lives;
+  hitPlayer(); hitPlayer(); hitPlayer();               // burst of beam ticks
+  res.shieldBlocksBeams = player.shield === 1 && lives === l3;
+  // K: force field deprecates over time
+  player.shield = 1; player.shieldT = 5.95;
+  enemies = []; ebullets = []; caps = [];
+  for (let i = 0; i < 10; i++) update(1/60);
+  res.shieldDeprecates = player.shield === 0 && lives === l3;
   muted = wasMuted;
   res.allPass = Object.keys(res).every(k => res[k] === true || k === 'allPass');
   reset(); state = 'title';
