@@ -56,7 +56,7 @@
     <span style="color:#4E5C78">DISCREET ⏸ PAUSE &amp; ♪ MUTE BUTTONS SIT IN THE TOP-RIGHT CORNER · P KEY ALSO PAUSES</span>
   </div>
   <div class="start" id="startBtn">TAP TO LAUNCH</div>
-  <div class="cred">A REY@NIU PRODUCTION · JULY 2026</div>
+  <div class="cred">A REY@NIU PRODUCTION · JULY 2026 · 100% FUN, 0% BATTLE PASS</div>
 </div>
 <div id="rotate">◄ ROTATE YOUR PHONE FOR THE FULL BRIDGE VIEW ►</div>
 
@@ -336,20 +336,25 @@ function route(g, send){
   g.connect(master);
   if (send && echo){ const sg = AC.createGain(); sg.gain.value = send; g.connect(sg); sg.connect(echo); }
 }
-function osc(type, f0, t0, dur, vol, f1, send, vib){
+function osc(type, f0, t0, dur, vol, f1, send, vib, atk, cutoff){
   if (!AC || muted) return;
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t0);
   if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
   g.gain.setValueAtTime(.0006, t0);
-  g.gain.exponentialRampToValueAtTime(vol, t0 + .008);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + (atk || .008));
   g.gain.exponentialRampToValueAtTime(.0006, t0 + dur);
   if (vib && dur > .08){
     const l = AC.createOscillator(), lg = AC.createGain();
     l.type = 'sine'; l.frequency.value = 5.5; lg.gain.value = f0 * .008;
     l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur + .03);
   }
-  o.connect(g); route(g, send);
+  if (cutoff){                                         // "sampled instrument" tone shaping
+    const fl = AC.createBiquadFilter(); fl.type = 'lowpass';
+    fl.frequency.value = cutoff; fl.Q.value = .7;
+    o.connect(fl); fl.connect(g);
+  } else o.connect(g);
+  route(g, send);
   o.start(t0); o.stop(t0 + dur + .03);
 }
 function nz(t0, dur, vol, fc0, fc1, send){
@@ -433,22 +438,35 @@ function musicTick(){
   const S = SONGS[songName];
   while (musicNext < AC.currentTime + .18){
     const t = musicNext, s16 = mStep % S.total, beat = s16 % 16;
-    if (beat === 0 || beat === 8) osc('sine', 150, t, .1, .13, 40, 0);
-    if (beat === 4 || beat === 12){
-      nz(t, .09, .055, 3200, 900, .15); osc('triangle', 220, t, .05, .026, 120, 0);
-      const bar = Math.floor(s16 / 16) % S.chords.length;
-      for (const n of S.chords[bar]) osc('triangle', mtof(n), t, .18, .02, 0, .35);
+    const bar = Math.floor(s16 / 16) % S.chords.length;
+    // --- SNES orchestra voices (ActRaiser / Axelay flavor) ---
+    if (s16 === 0) nz(t, 1.3, .045, 9000, 2500, .3);                       // crash at phrase top
+    if (beat === 0){ osc('sine', 82, t, .45, .16, 38, .12); nz(t, .12, .035, 400, 120, .1); }  // timpani
+    if (beat === 8) osc('sine', 70, t, .35, .11, 36, .1);                  // timpani (soft)
+    if (beat === 4 || beat === 12){                                        // orchestral snare
+      nz(t, .12, .04, 2600, 700, .2); osc('triangle', 200, t, .06, .018, 110, 0);
     }
-    if (s16 % 2 === 0) nz(t, .025, .013, 9500, 7000, .08);
+    if (s16 % 4 === 2) nz(t, .03, .009, 8000, 6000, .15);                  // tambourine tick
+    if (beat === 0){                                                       // string ensemble pad (whole bar)
+      const durBar = S.spb * 16 * .95;
+      for (const n of S.chords[bar]){
+        osc('sawtooth', mtof(n),       t, durBar, .013, 0, .35, true,  .18, 1600);
+        osc('sawtooth', mtof(n)*1.007, t, durBar, .010, 0, .35, false, .22, 1400);
+      }
+    }
     const a = S.arp[s16 % S.arp.length];
-    if (a) osc('square', mtof(a), t, .07, .013, 0, .25);
+    if (a) osc('triangle', mtof(a), t, .16, .026, 0, .3, false, .004);     // harp arpeggio
     if (s16 % 2 === 0){
       const i8 = s16 / 2;
       const b = S.bass[i8 % S.bass.length];
-      if (b) osc('triangle', mtof(b), t, S.spb*1.9, .075, 0, 0);
+      if (b){ osc('triangle', mtof(b), t, S.spb*1.9, .065, 0, 0);          // contrabass
+              osc('sawtooth', mtof(b), t, S.spb*1.9, .015, 0, 0, false, .01, 700); }  // cello bow
       const l = S.lead[i8 % S.lead.length];
-      if (l){ osc('square', mtof(l), t, S.spb*1.85, .028, 0, .32, true);
-              osc('square', mtof(l)*1.006, t, S.spb*1.85, .016, 0, .32); }
+      if (l){                                                              // brass section
+        osc('sawtooth', mtof(l),       t, S.spb*1.9, .024, 0, .32, true,  .03,  3200);
+        osc('sawtooth', mtof(l)*1.004, t, S.spb*1.9, .016, 0, .32, false, .035, 2800);
+        osc('square',   mtof(l)/2,     t, S.spb*1.9, .011, 0, .25, false, .03,  1800);  // horn 8vb
+      }
     }
     mStep++; musicNext += S.spb;
   }
@@ -784,7 +802,7 @@ function banner(text, dur){ banners.push({text, t: dur || 2.4, max: dur || 2.4})
 function burst(x, y, col, n){
   for (let i = 0; i < (n||10); i++){
     const a = Math.random()*Math.PI*2, sp = 30 + Math.random()*90;
-    parts.push({x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, t: .4+Math.random()*.4, col});
+    parts.push({x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, t: .4+Math.random()*.4, col, g: i % 2});
   }
 }
 function ring(x, y, R){ rings.push({x, y, t: 0, max: .35, R: R || 20}); }
@@ -866,7 +884,7 @@ function spawnRack(y0, drop){
     up(e, dt){ e.t += dt; e.x -= e.vx*dt; e.y += Math.sin(e.t*1.5)*8*dt; }});
 }
 function spawnMidboss(){
-  banner('⚠ THE MIDDLE MANAGER · SYNERGY ENFORCER ⚠', 3);
+  banner('⚠ MIDDLE MANAGER · \"LET\'S TAKE THIS OFFLINE\" ⚠', 3);
   sfx.warn();
   enemies.push({kind:'midboss', name:'mgr', x: W+40, y: H/2, y0: H/2, hp: 45, maxhp: 45, t: 0,
     fire: 2, sum: 4, drop: true, score: 800, r: 16, ry: 17,
@@ -891,7 +909,7 @@ function spawnMidboss(){
     }});
 }
 function spawnCFO(){
-  banner('⚠ THE CFO · CHIEF FINANCIAL OVERLORD ⚠', 3);
+  banner('⚠ THE CFO · FUN IS AN UNMONETIZED ASSET ⚠', 3);
   sfx.warn();
   enemies.push({kind:'midboss', name:'cfo', x: W+40, y: H/2, y0: H/2, hp: 60, maxhp: 60, t: 0,
     fire: 1.8, sum: 5, alt: 0, drop: true, score: 1200, r: 16, ry: 17,
@@ -948,7 +966,7 @@ function spawnTurretC(){                               // ceiling-mounted HR tur
     }});
 }
 function spawnSysadmin(){
-  banner('⚠ THE SYSADMIN · ROOT ACCESS ⚠', 3);
+  banner('⚠ THE SYSADMIN · IT WORKS ON MY MACHINE ⚠', 3);
   sfx.warn();
   enemies.push({kind:'midboss', name:'sys', x: W+40, y: H/2, y0: H/2, hp: 55, maxhp: 55, t: 0,
     fire: 1.7, sum: 5, drop: true, score: 1000, r: 16, ry: 17,
@@ -1023,56 +1041,56 @@ function pickBossAttack(b){
 
 // ---------- level scripts ----------
 const TL1 = [
-  [3,   () => { for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnDrone(70, i*.4, i===4), i*350); banner('JUNIOR ANALYSTS · SAUDI ARABIA PIF'); }],
+  [3,   () => { for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnDrone(70, i*.4, i===4), i*350); banner('JUNIOR ANALYSTS · PIF-FUNDED PASSION PROJECT'); }],
   [9,   () => { for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnDrone(GROUND-60, i*.4, i===4), i*350); }],
   [16,  () => { banner('EXTERNAL CONSULTANTS · CIRCLING BACK'); spawnRing(H/2 - 20); }],
-  [24,  () => { banner('VPs OF MONETIZATION · MICROHARD'); spawnVP(60, true); spawnVP(H/2); spawnVP(GROUND-50); }],
-  [33,  () => { banner('HR DEPARTMENT · GROUND FLOOR'); spawnTurret(true); setTimeout(()=>state==='play'&&spawnTurret(), 900); setTimeout(()=>state==='play'&&spawnTurret(), 1800);
+  [24,  () => { banner('VPs OF MONETIZATION · \"SURPRISE MECHANICS\"'); spawnVP(60, true); spawnVP(H/2); spawnVP(GROUND-50); }],
+  [33,  () => { banner('HR DEPARTMENT · \"WE HEAR YOU\"'); spawnTurret(true); setTimeout(()=>state==='play'&&spawnTurret(), 900); setTimeout(()=>state==='play'&&spawnTurret(), 1800);
                 for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(46+i*18, i*.3), i*300); }],
-  [42,  () => { banner('CHIEF LEGAL OFFICERS · ELECTRONIC HEARTS'); spawnLawyer(70, true); spawnLawyer(GROUND-70); }],
-  [50,  () => { banner('SPONSORED CONTENT INCOMING'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*500); }],
-  [59,  () => { banner('SERVER FARM DEBRIS FIELD'); for (let i=0;i<9;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*67)%(GROUND-90)), i===4||i===8), i*550); }],
+  [42,  () => { banner('LEGAL DEPT · YOU AGREED TO THE EULA'); spawnLawyer(70, true); spawnLawyer(GROUND-70); }],
+  [50,  () => { banner('SPONSORED CONTENT · UNSKIPPABLE #AD'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*500); }],
+  [59,  () => { banner('SERVER DECOMMISSION · YOUR PURCHASES LIVED HERE'); for (let i=0;i<9;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*67)%(GROUND-90)), i===4||i===8), i*550); }],
   [68,  () => { spawnVP(80, true); spawnVP(GROUND-70); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(H/2, i*.5), i*400); }],
-  [78,  () => { banner('CONSULTANTS: FOLLOW-UP MEETING'); spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1400); }],
+  [78,  () => { banner('CONSULTANTS · PER MY LAST EMAIL'); spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1400); }],
   [88,  spawnMidboss],
-  [112, () => { banner('ALL-HANDS MEETING INBOUND'); for (let i=0;i<10;i++) setTimeout(()=>state==='play'&&spawnDrone(36+(i%5)*42, i*.35, i===9), i*250); }],
+  [112, () => { banner('ALL-HANDS MEETING · MANDATORY FUN'); for (let i=0;i<10;i++) setTimeout(()=>state==='play'&&spawnDrone(36+(i%5)*42, i*.35, i===9), i*250); }],
   [122, () => { spawnTurret(true); setTimeout(()=>state==='play'&&spawnTurret(), 1100); spawnLawyer(60, true); spawnLawyer(GROUND-70); }],
-  [132, () => { banner('INFLUENCER MARKETING BLITZ'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*450); spawnVP(H/2, true); }],
-  [142, () => { banner('Q3 CLOUD MIGRATION'); for (let i=0;i<7;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*73)%(GROUND-90)), i===3), i*500);
+  [132, () => { banner('INFLUENCER BLITZ · AUTHENTICITY SOLD SEPARATELY'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*450); spawnVP(H/2, true); }],
+  [142, () => { banner('Q3 CLOUD MIGRATION · SAVES NOT INCLUDED'); for (let i=0;i<7;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*73)%(GROUND-90)), i===3), i*500);
                 for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(60+i*30, i*.4), i*400); }],
-  [152, () => { banner('QUARTERLY REVIEW'); spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1400); spawnVP(H/2, true); }],
+  [152, () => { banner('QUARTERLY REVIEW · METRICS OVER MERRIMENT'); spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1400); spawnVP(H/2, true); }],
   [163, spawnCFO],
-  [190, () => { banner('RESTRUCTURING WAVE'); for (let i=0;i<12;i++) setTimeout(()=>state==='play'&&spawnDrone(34+(i%6)*38, i*.3, i===11), i*230); }],
+  [190, () => { banner('RESTRUCTURING · \"WE ARE A FAMILY\"'); for (let i=0;i<12;i++) setTimeout(()=>state==='play'&&spawnDrone(34+(i%6)*38, i*.3, i===11), i*230); }],
   [200, () => { spawnTurret(true); setTimeout(()=>state==='play'&&spawnTurret(), 800); setTimeout(()=>state==='play'&&spawnTurret(), 1600);
                 for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnInfluencer(50+(i%2)*90, i===3), i*550); }],
-  [210, () => { banner('CLASS ACTION LAWSUIT'); spawnLawyer(60, true); spawnLawyer(H/2); spawnLawyer(GROUND-60, true); }],
+  [210, () => { banner('CLASS ACTION · BINDING ARBITRATION APPLIES'); spawnLawyer(60, true); spawnLawyer(H/2); spawnLawyer(GROUND-60, true); }],
   [220, () => { spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1200); spawnVP(70, true); spawnVP(GROUND-60); }],
-  [232, () => { banner('EMERGENCY BOARD MEETING'); spawnLawyer(H/2, true); spawnVP(60); spawnVP(GROUND-60, true); spawnTurret();
+  [232, () => { banner('BOARD PANIC · STOCK DIPPED 2%'); spawnLawyer(H/2, true); spawnVP(60); spawnVP(GROUND-60, true); spawnTurret();
                 for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnDrone(40+(i%3)*60, i*.35), i*300); }],
-  [245, () => { banner('WARNING: HOSTILE C-SUITE DETECTED', 3.2); sfx.warn(); }],
+  [245, () => { banner('WARNING: C-SUITE · GOLDEN PARACHUTE ARMED', 3.2); sfx.warn(); }],
   [249, spawnBoss],
 ];
 const TL2 = [
   [2,   () => banner('SECTOR 2 · DATA CENTER DELTA', 2.6)],
-  [4,   () => { banner('DDoS SWARM DETECTED'); spawnSwarm(80); }],
+  [4,   () => { banner('DDoS SWARM · DRM WORKING AS INTENDED'); spawnSwarm(80); }],
   [11,  () => { spawnTurret(true); spawnTurretC(); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(50+i*22, i*.3), i*300); }],
-  [19,  () => { banner('FIREWALL DETECTED — FIND THE GAP'); spawnGate(); }],
+  [19,  () => { banner('FIREWALL · FIND THE GAP IN THE PAYWALL'); spawnGate(); }],
   [27,  () => { spawnVP(60, true); spawnVP(H/2); spawnVP(GROUND-50); }],
   [35,  () => { spawnGate(); setTimeout(()=>state==='play'&&spawnGate(), 1600); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(H/2, i*.4), i*350); }],
   [45,  () => { spawnLawyer(70, true); spawnLawyer(GROUND-70); spawnTurretC(); spawnTurretC(); }],
-  [53,  () => { banner('SPONSORED CONTENT INCOMING'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*450); }],
-  [61,  () => { banner('RACK MIGRATION'); for (let i=0;i<8;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*67)%(GROUND-90)), i===4), i*500); spawnSwarm(H/2); }],
+  [53,  () => { banner('SPONSORED CONTENT · UNSKIPPABLE #AD'); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===5), i*450); }],
+  [61,  () => { banner('RACK MIGRATION · GAMES PRESERVED: ZERO'); for (let i=0;i<8;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*67)%(GROUND-90)), i===4), i*500); spawnSwarm(H/2); }],
   [70,  () => { spawnGate(); spawnRing(H/2-20); }],
   [80,  spawnSysadmin],
-  [104, () => { banner('DDoS AMPLIFICATION'); spawnSwarm(70); setTimeout(()=>state==='play'&&spawnSwarm(GROUND-80), 1200); spawnTurret(true); }],
+  [104, () => { banner('DDoS AMPLIFICATION · REAL PLAYERS NOT FOUND'); spawnSwarm(70); setTimeout(()=>state==='play'&&spawnSwarm(GROUND-80), 1200); spawnTurret(true); }],
   [114, () => { spawnGate(); setTimeout(()=>state==='play'&&spawnGate(), 1300); setTimeout(()=>state==='play'&&spawnGate(), 2600); }],
   [124, () => { spawnVP(70, true); spawnVP(GROUND-60); spawnLawyer(H/2, true); spawnRing(70); }],
-  [136, () => { banner('BOTNET SURGE'); spawnSwarm(60); setTimeout(()=>state==='play'&&spawnSwarm(H/2), 900); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnInfluencer(50+(i%2)*90, i===3), i*500); }],
+  [136, () => { banner('BOTNET SURGE · ENGAGEMENT UP 400%'); spawnSwarm(60); setTimeout(()=>state==='play'&&spawnSwarm(H/2), 900); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnInfluencer(50+(i%2)*90, i===3), i*500); }],
   [147, () => { for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnRack(35+((i*73)%(GROUND-90)), i===3), i*500); spawnGate(); for (let i=0;i<3;i++) setTimeout(()=>state==='play'&&spawnDrone(60+i*40, i*.4), i*400); }],
   [158, () => { spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1300); spawnTurret(true); spawnTurretC(); }],
-  [170, () => { banner('FIREWALL CORRIDOR'); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnGate(), i*1100); }],
-  [183, () => { banner('KERNEL PANIC'); spawnLawyer(60, true); spawnLawyer(GROUND-60); spawnVP(H/2, true); spawnTurretC(); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnDrone(40+(i%3)*60, i*.3), i*280); }],
-  [197, () => { banner('WARNING: ROGUE PROCESS DETECTED', 3.2); sfx.warn(); }],
+  [170, () => { banner('FIREWALL CORRIDOR · PREMIUM DODGE PASS REQUIRED'); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnGate(), i*1100); }],
+  [183, () => { banner('KERNEL PANIC · HAVE YOU TRIED PREORDERING?'); spawnLawyer(60, true); spawnLawyer(GROUND-60); spawnVP(H/2, true); spawnTurretC(); for (let i=0;i<6;i++) setTimeout(()=>state==='play'&&spawnDrone(40+(i%3)*60, i*.3), i*280); }],
+  [197, () => { banner('WARNING: ROGUE PROCESS · 99.999% EVIL UPTIME', 3.2); sfx.warn(); }],
   [201, () => spawnBoss2()],
 ];
 let TIMELINE = TL1;
@@ -1127,7 +1145,9 @@ function killEnemy(e){
   } else if (e.kind === 'midboss'){
     burst(e.x, e.y, AMB, 24); burst(e.x, e.y, WHT, 14); ring(e.x, e.y, 30); ring(e.x, e.y-10, 22);
     sfx.bigBoom(); shake = .5;
-    banner(e.name === 'cfo' ? 'CFO: ASSETS FROZEN' : 'MIDDLE MANAGER: PROMOTED TO CUSTOMER', 2.2);
+    banner(e.name === 'cfo' ? 'CFO: ASSETS FROZEN. BONUS INTACT.' :
+           e.name === 'sys' ? 'SYSADMIN: CLOSED AS WONTFIX' :
+           'MIDDLE MANAGER: PROMOTED TO CUSTOMER', 2.2);
     caps.push({x: e.x, y: e.y - 14, t: 0});
   } else {
     burst(e.x, e.y, e.kind==='vp' ? AMB : e.kind==='influencer' ? MAG : e.kind==='lawyer' ? MAG : HULL, 14);
@@ -1218,11 +1238,12 @@ function update(dt){
       continue;
     }
     const hy = (e.ry || e.r);                       // per-axis hitbox (tall vs wide sprites)
+    if (e.flash > 0) e.flash -= dt;
     for (const s of shots){
       if (s.dead || (s.hit && s.hit.has(e))) continue;
       const sx = s.x + s.w*.5;                      // collide on bullet center, not left edge
       if (Math.abs(sx - e.x) < e.r+6 && Math.abs(s.y - e.y) < hy+4){
-        e.hp -= s.dmg;
+        e.hp -= s.dmg; e.flash = .07;
         if (s.pierce) (s.hit || (s.hit = new Set())).add(e);   // pierce = one hit per enemy
         else s.dead = true;
         burst(s.x, s.y, WHT, 2);
@@ -1230,7 +1251,7 @@ function update(dt){
     }
     for (const m of missiles){
       if (m.dead) continue;
-      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; m.dead = true; }
+      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; e.flash = .07; m.dead = true; }
     }
     if (p.alive && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < hy+4) hitPlayer();
   }
@@ -1361,7 +1382,7 @@ function update(dt){
     return c.x > -10;
   });
 
-  for (const q of parts){ q.x += q.vx*dt; q.y += q.vy*dt; q.t -= dt; }
+  for (const q of parts){ if (q.g) q.vy += 150*dt; q.x += q.vx*dt; q.y += q.vy*dt; q.t -= dt; }
   parts = parts.filter(q => q.t > 0);
   for (const r of rings) r.t += dt;
   rings = rings.filter(r => r.t < r.max);
@@ -1533,10 +1554,12 @@ function drawBG1(){
 }
 function drawHUD(){
   ctx.font = 'bold 8px "Courier New", monospace';
-  ctx.fillStyle = HULL; ctx.textAlign = 'left';
-  ctx.fillText('SCORE ' + String(score).padStart(7,'0'), 8, 10);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillText('SCORE ' + String(score).padStart(7,'0'), 9, 11);
+  ctx.fillStyle = HULL;              ctx.fillText('SCORE ' + String(score).padStart(7,'0'), 8, 10);
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#6E7FA0'; ctx.fillText('HI ' + String(hiscore).padStart(7,'0'), W/2, 10);
+  ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillText('HI ' + String(hiscore).padStart(7,'0'), W/2+1, 11);
+  ctx.fillStyle = '#6E7FA0';         ctx.fillText('HI ' + String(hiscore).padStart(7,'0'), W/2, 10);
   ctx.textAlign = 'left';
   for (let i = 0; i < Math.max(0,lives); i++) ctx.drawImage(shipSpr, W - 132 + i*22, 4, 16, 6);
   // discreet pause chip
@@ -1561,8 +1584,14 @@ function drawHUD(){
   const cw = W/6;
   for (let i = 0; i < 6; i++){
     const sel = player.meter === i+1;
-    ctx.fillStyle = sel ? AMB : DK;
+    ctx.fillStyle = DK;
     ctx.fillRect(i*cw+1, GROUND+3, cw-2, H-GROUND-6);
+    if (sel){
+      ctx.globalAlpha = .75 + .25*Math.sin(perfT*7);   // pulsing selection
+      ctx.fillStyle = AMB;
+      ctx.fillRect(i*cw+1, GROUND+3, cw-2, H-GROUND-6);
+      ctx.globalAlpha = 1;
+    }
     if (sel){ ctx.fillStyle = 'rgba(255,194,75,.35)'; ctx.fillRect(i*cw+1, GROUND+1, cw-2, 1); }
     ctx.fillStyle = sel ? '#05070F' : '#6E7FA0';
     ctx.font = 'bold 8px "Courier New", monospace'; ctx.textAlign = 'center';
@@ -1574,6 +1603,7 @@ function drawHUD(){
     const a = Math.min(1, b.t / .3, (b.max - b.t) / .2 + 1);
     ctx.globalAlpha = Math.max(0, Math.min(1, a));
     ctx.font = 'bold 11px "Courier New", monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillText(b.text, W/2+1, by+1);
     ctx.fillStyle = b.text.indexOf('⚠') >= 0 || b.text.indexOf('WARNING') >= 0 ? RED : CYAN;
     ctx.fillText(b.text, W/2, by);
     ctx.globalAlpha = 1; ctx.textAlign = 'left'; by += 14;
@@ -1674,6 +1704,14 @@ function drawIntro(){
     ctx.textAlign = 'left';
   }
 }
+function flashDraw(e, img, x, y){
+  ctx.drawImage(img, x, y);
+  if (e.flash > 0){                                    // white damage flash
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .85;
+    ctx.drawImage(img, x, y);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+}
 function drawFlame(x, y){
   const f = (perfT*24|0) % 3;
   const len = 4 + f*2;
@@ -1722,9 +1760,9 @@ function render(){
       ctx.drawImage(turretSpr, -14, -8);
       ctx.restore();
     } else if (e.kind === 'turret'){
-      ctx.drawImage(turretSpr, (e.x-14)|0, (e.y-8)|0);
+      flashDraw(e, turretSpr, (e.x-14)|0, (e.y-8)|0);
     } else if (e.kind === 'rack'){
-      ctx.drawImage(rackSpr, (e.x-8)|0, (e.y-13)|0);
+      flashDraw(e, rackSpr, (e.x-8)|0, (e.y-13)|0);
       if (Math.sin(perfT*6 + e.t*9) > 0){
         ctx.fillStyle = GRN;
         ctx.fillRect((e.x-4)|0, (e.y-8)|0, 2, 2); ctx.fillRect((e.x+2)|0, (e.y+2)|0, 2, 2);
@@ -1735,7 +1773,7 @@ function render(){
       ctx.fillRect((e.x-8)|0, (e.y-7)|0, fr ? 16 : 10, 1);
     } else if (e.kind === 'midboss'){
       const bob = Math.sin(e.t*3)*2;
-      ctx.drawImage((e.name === 'cfo' ? cfoSprs : e.name === 'sys' ? sysSprs : mgrSprs)[fr], (e.x-18)|0, (e.y-18+bob)|0);
+      flashDraw(e, (e.name === 'cfo' ? cfoSprs : e.name === 'sys' ? sysSprs : mgrSprs)[fr], (e.x-18)|0, (e.y-18+bob)|0);
       const fl = (perfT*20|0) % 2;
       ctx.fillStyle = AMB; ctx.fillRect((e.x-3)|0, (e.y+18+bob)|0, 4+fl*2, 2);
       ctx.fillStyle = DK; ctx.fillRect((e.x-18)|0, (e.y-26+bob)|0, 36, 3);
@@ -1747,7 +1785,7 @@ function render(){
       const fl = (perfT*20|0) % 2;
       ctx.fillStyle = AMB; ctx.fillRect((e.x+hw-4)|0, (e.y+6+bob)|0, 2+fl, 2);
       ctx.fillStyle = WHT; ctx.fillRect((e.x+hw-3)|0, (e.y+7+bob)|0, 1+fl, 1);
-      ctx.drawImage(spr, (e.x-hw)|0, (e.y-13+bob)|0);
+      flashDraw(e, spr, (e.x-hw)|0, (e.y-13+bob)|0);
     }
   }
   // final boss
@@ -1854,10 +1892,17 @@ function render(){
     ctx.fillStyle = AMB; ctx.fillRect(-10-len, -1, len, 3);
     ctx.fillStyle = WHT; ctx.fillRect(-10-Math.ceil(len/2), 0, Math.ceil(len/2), 1);
     ctx.drawImage(blink ? shipSpr2 : shipSpr, -11, -4);
+    if (p.fireT > (p.laser ? .2 : .16) - .05){         // muzzle flash
+      ctx.fillStyle = p.laser ? MAG : AMB; ctx.fillRect(13, -2, 4, 4);
+      ctx.fillStyle = WHT; ctx.fillRect(14, -1, 2, 2);
+    }
     ctx.restore();
     if (p.shield > 0){
-      ctx.strokeStyle = 'rgba(93,242,230,' + (.25 + p.shield*.15) + ')';
+      ctx.strokeStyle = 'rgba(93,242,230,' + (.15 + p.shield*.08) + ')';
       ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x+3, p.y, 14, 0, 7); ctx.stroke();
+      ctx.strokeStyle = 'rgba(93,242,230,' + (.4 + p.shield*.15) + ')';
+      ctx.beginPath(); ctx.arc(p.x+3, p.y, 14, perfT*3, perfT*3 + 1.1); ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x+3, p.y, 14, perfT*3 + Math.PI, perfT*3 + Math.PI + 1.1); ctx.stroke();
     }
   }
   for (const s of shots){
@@ -1919,6 +1964,8 @@ function render(){
     ctx.fillText('PAUSED', W/2, 118);
     ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
     ctx.fillText('MARKET HOLIDAY — TRADING SUSPENDED', W/2, 138);
+    ctx.fillStyle = '#5C6C8C';
+    ctx.fillText('THIS PAUSE IS FREE. FOR NOW.', W/2, 150);
     if (Math.floor(perfT*2) % 2 === 0){
       ctx.fillStyle = HULL; ctx.font = 'bold 10px monospace';
       ctx.fillText('TAP ANYWHERE TO RESUME', W/2, 162);
@@ -1935,13 +1982,16 @@ function render(){
       ctx.fillText('YOU\'VE BEEN FIRED', W/2, 106);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
       ctx.fillText('TOMOE-SAN, THE BOARD ACCEPTS YOUR RESIGNATION.', W/2, 126);
+      ctx.fillStyle = '#5C6C8C';
+      ctx.fillText('EXIT SURVEY: 47 QUESTIONS. ALL MANDATORY.', W/2, 140);
     } else {
       ctx.fillStyle = CYAN; ctx.font = 'bold 20px "Courier New", monospace';
       ctx.fillText('HOSTILE TAKEOVER COMPLETE', W/2, 100);
       ctx.fillStyle = AMB; ctx.font = 'bold 10px monospace';
-      ctx.fillText('THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
+      ctx.fillText(level === 2 ? 'THE ALGORITHM HAS BEEN DEPRECATED' : 'THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText('NICE FLYING, TOMOE-SAN — PLAYERS EVERYWHERE REJOICE', W/2, 134);
+      ctx.fillText(level === 2 ? 'SERVERS NOW RUN ACTUAL GAMES · NICE FLYING, TOMOE-SAN'
+                               : 'ALL MICROTRANSACTIONS REFUNDED · NICE FLYING, TOMOE-SAN', W/2, 134);
     }
     ctx.fillStyle = HULL; ctx.font = 'bold 11px monospace';
     ctx.fillText('SCORE ' + score + '   ·   HI ' + hiscore, W/2, 160);
