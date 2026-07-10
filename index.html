@@ -50,9 +50,10 @@
     <b>THE SHAREHOLDER</b> — CEO of Everything
   </div>
   <div class="how">
+    YOU ARE <b style="color:#5DF2E6">TOMOE-SAN</b>, PILOT OF THE STARFIGHTER <b style="color:#5DF2E6">CUSTOMER-1</b><br>
     DRAG ANYWHERE TO FLY · YOUR SHIP FIRES AUTOMATICALLY<br>
     GRAB <span style="color:#FFC24B">■</span> CAPSULES · TAP THE POWER BAR (OR A SECOND FINGER) TO UPGRADE<br>
-    <span style="color:#4E5C78">⏸ PAUSE &amp; ♪ MUTE LIVE IN THE TOP-RIGHT CORNER</span>
+    <span style="color:#4E5C78">DISCREET ⏸ PAUSE &amp; ♪ MUTE BUTTONS SIT IN THE TOP-RIGHT CORNER · P KEY ALSO PAUSES</span>
   </div>
   <div class="start" id="startBtn">TAP TO LAUNCH</div>
   <div class="cred">A REY@NIU PRODUCTION · JULY 2026</div>
@@ -233,6 +234,44 @@ const CAP_MAP = [
 ];
 const capSpr = sprite(CAP_MAP, {A:AMB, W:WHT, a:'#B07A18'});
 
+// --- opening crawl (pre-rendered, Star Wars style) ---
+const crawlCv = document.createElement('canvas');
+let crawlH = 0;
+{
+  crawlCv.width = 360;
+  const paras = [
+    "THE EVIL FORCES OF THE BIG PUBLISHERS ARE BANKRUPTING THE GAMES INDUSTRY WITH UNFUN GAMES AND SHADY MONETIZATION SCHEMES.",
+    "",
+    "LOOT BOXES FALL LIKE RAIN. LIVE SERVICES NEVER END. FUN IS AT AN ALL-TIME LOW.",
+    "",
+    "ONE HERO DARES TO DEMAND BETTER: TOMOE-SAN, ACE PILOT OF THE LEGENDARY STARFIGHTER CUSTOMER-1.",
+    "",
+    "TODAY, THE REFUND BEGINS...",
+  ];
+  const mg = crawlCv.getContext('2d');
+  mg.font = 'bold 15px "Courier New", monospace';
+  const lines = ['EPISODE 1', 'THE REFUND AWAKENS', ''];
+  for (const para of paras){
+    if (!para){ lines.push(''); continue; }
+    let cur = '';
+    for (const w of para.split(' ')){
+      const test = cur ? cur + ' ' + w : w;
+      if (mg.measureText(test).width > 330 && cur){ lines.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+  }
+  crawlH = lines.length * 22 + 30;
+  crawlCv.height = crawlH;
+  const g = crawlCv.getContext('2d');
+  g.textAlign = 'center';
+  lines.forEach((ln, i) => {
+    g.font = i < 2 ? 'bold 19px "Courier New", monospace' : 'bold 15px "Courier New", monospace';
+    g.fillStyle = i < 2 ? CYAN : AMB;
+    g.fillText(ln, 180, 24 + i*22);
+  });
+}
+
 // ---------- audio ----------
 let AC = null, master = null, echo = null, muted = false;
 let songName = 'main', mStep = 0, musicNext = 0;
@@ -371,8 +410,9 @@ function musicTick(){
 function setSong(name){ songName = name; mStep = 0; if (AC) musicNext = AC.currentTime + .15; }
 
 // ---------- game state ----------
-let state = 'title';          // title | play | over | win
+let state = 'title';          // title | intro | play | over | win
 let paused = false;
+let introT = 0, introChord = 0;
 let score = 0, hiscore = +(localStorage.getItem('ht-hiscore') || 0);
 let lives, levelT, player, shots, missiles, ebullets, enemies, caps, parts, rings, pops, banners, boss;
 let shake = 0, endT = 0, perfT = 0, ambT = 8, winT = 0;
@@ -646,7 +686,7 @@ function spawnLawyer(y0, drop){
     }});
 }
 function spawnInfluencer(y0, drop){
-  enemies.push({kind:'influencer', x: W+14, y: y0, hp: 1, t: 0, dash: false, drop: !!drop, score: 200, r: 8,
+  enemies.push({kind:'influencer', x: W+14, y: y0, hp: 1, t: 0, dash: false, drop: !!drop, score: 200, r: 8, ry: 5,
     up(e, dt){
       e.t += dt;
       if (!e.dash){
@@ -657,7 +697,7 @@ function spawnInfluencer(y0, drop){
     }});
 }
 function spawnTurret(drop){
-  enemies.push({kind:'turret', x: W+16, y: GROUND-11, hp: 4, t: 0, fire: 1.3, drop: !!drop, score: 400, r: 12,
+  enemies.push({kind:'turret', x: W+16, y: GROUND-11, hp: 4, t: 0, fire: 1.3, drop: !!drop, score: 400, r: 12, ry: 8,
     up(e, dt){
       e.t += dt; e.x -= 30*dt;
       e.fire -= dt;
@@ -671,14 +711,14 @@ function spawnTurret(drop){
 }
 function spawnRack(y0, drop){
   enemies.push({kind:'rack', x: W+12, y: y0, hp: 2, t: Math.random()*7, vx: 30+Math.random()*26,
-    drop: !!drop, score: 50, r: 9,
+    drop: !!drop, score: 50, r: 9, ry: 13,
     up(e, dt){ e.t += dt; e.x -= e.vx*dt; e.y += Math.sin(e.t*1.5)*8*dt; }});
 }
 function spawnMidboss(){
   banner('⚠ THE MIDDLE MANAGER · SYNERGY ENFORCER ⚠', 3);
   sfx.warn();
   enemies.push({kind:'midboss', name:'mgr', x: W+40, y: H/2, y0: H/2, hp: 45, maxhp: 45, t: 0,
-    fire: 2, sum: 4, drop: true, score: 800, r: 16,
+    fire: 2, sum: 4, drop: true, score: 800, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
       if (e.x > W-80) e.x -= 50*dt;
@@ -703,7 +743,7 @@ function spawnCFO(){
   banner('⚠ THE CFO · CHIEF FINANCIAL OVERLORD ⚠', 3);
   sfx.warn();
   enemies.push({kind:'midboss', name:'cfo', x: W+40, y: H/2, y0: H/2, hp: 60, maxhp: 60, t: 0,
-    fire: 1.8, sum: 5, alt: 0, drop: true, score: 1200, r: 16,
+    fire: 1.8, sum: 5, alt: 0, drop: true, score: 1200, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
       if (e.x > W-76) e.x -= 50*dt;
@@ -937,18 +977,22 @@ function update(dt){
 
   for (const e of enemies) e.up(e, dt);
   for (const e of enemies){
+    const hy = (e.ry || e.r);                       // per-axis hitbox (tall vs wide sprites)
     for (const s of shots){
-      if (s.dead) continue;
-      if (Math.abs(s.x - e.x) < e.r+6 && Math.abs(s.y - e.y) < e.r+4){
-        e.hp -= s.dmg; if (!s.pierce) s.dead = true;
+      if (s.dead || (s.hit && s.hit.has(e))) continue;
+      const sx = s.x + s.w*.5;                      // collide on bullet center, not left edge
+      if (Math.abs(sx - e.x) < e.r+6 && Math.abs(s.y - e.y) < hy+4){
+        e.hp -= s.dmg;
+        if (s.pierce) (s.hit || (s.hit = new Set())).add(e);   // pierce = one hit per enemy
+        else s.dead = true;
         burst(s.x, s.y, WHT, 2);
       }
     }
     for (const m of missiles){
       if (m.dead) continue;
-      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < e.r+5){ e.hp -= 2; m.dead = true; }
+      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; m.dead = true; }
     }
-    if (p.alive && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < e.r+4) hitPlayer();
+    if (p.alive && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < hy+4) hitPlayer();
   }
   shots = shots.filter(s => !s.dead);
   missiles = missiles.filter(m => !m.dead);
@@ -1036,9 +1080,11 @@ function update(dt){
         parts.push({x: b.x-40+Math.random()*80, y: b.y+40, vx: 0, vy: -30-Math.random()*30, t: .8, col: AMB});
       // damage
       for (const s of shots){
-        if (s.dead) continue;
-        if (Math.abs(s.x-b.x) < BOSS_HW-4 && Math.abs(s.y-b.y) < BOSS_HH-4){
-          b.hp -= s.dmg; b.flash = .06; if (!s.pierce) s.dead = true;
+        if (s.dead || s.bossHit) continue;
+        const sx = s.x + s.w*.5;
+        if (Math.abs(sx-b.x) < BOSS_HW-4 && Math.abs(s.y-b.y) < BOSS_HH-4){
+          b.hp -= s.dmg; b.flash = .06;
+          if (s.pierce) s.bossHit = true; else s.dead = true;
           burst(s.x, s.y, MAG, 2);
         }
       }
@@ -1197,14 +1243,18 @@ function drawHUD(){
   ctx.textAlign = 'center';
   ctx.fillStyle = '#6E7FA0'; ctx.fillText('HI ' + String(hiscore).padStart(7,'0'), W/2, 10);
   ctx.textAlign = 'left';
-  for (let i = 0; i < Math.max(0,lives); i++) ctx.drawImage(shipSpr, W - 116 + i*22, 4, 16, 6);
-  // pause button
-  ctx.fillStyle = paused ? AMB : '#6E7FA0';
-  ctx.fillRect(W - 40, 3, 3, 9); ctx.fillRect(W - 34, 3, 3, 9);
-  // mute button
-  ctx.fillStyle = muted ? '#4E5C78' : CYAN;
+  for (let i = 0; i < Math.max(0,lives); i++) ctx.drawImage(shipSpr, W - 132 + i*22, 4, 16, 6);
+  // discreet pause chip
+  ctx.fillStyle = 'rgba(11,18,38,.55)'; ctx.fillRect(W - 50, 2, 22, 13);
+  ctx.strokeStyle = 'rgba(110,127,160,.45)'; ctx.lineWidth = 1; ctx.strokeRect(W - 49.5, 2.5, 21, 12);
+  ctx.fillStyle = paused ? AMB : 'rgba(184,196,217,.7)';
+  ctx.fillRect(W - 43, 5, 2, 7); ctx.fillRect(W - 39, 5, 2, 7);
+  // discreet mute chip
+  ctx.fillStyle = 'rgba(11,18,38,.55)'; ctx.fillRect(W - 25, 2, 22, 13);
+  ctx.strokeStyle = 'rgba(110,127,160,.45)'; ctx.strokeRect(W - 24.5, 2.5, 21, 12);
+  ctx.fillStyle = muted ? '#4E5C78' : 'rgba(93,242,230,.8)';
   ctx.font = 'bold 9px monospace';
-  ctx.fillText(muted ? '♪✕' : '♪', W - 18, 11);
+  ctx.fillText(muted ? '♪✕' : '♪', W - 18, 12);
   if (boss && boss.entered && boss.dying <= 0){
     ctx.fillStyle = DK; ctx.fillRect(90, 14, 300, 5);
     ctx.fillStyle = boss.phase === 2 ? '#FF2D6C' : MAG;
@@ -1233,6 +1283,36 @@ function drawHUD(){
     ctx.globalAlpha = 1; ctx.textAlign = 'left'; by += 14;
   }
 }
+function drawIntro(){
+  ctx.fillStyle = 'rgba(3,4,10,.55)';                  // dim the city for cinema
+  ctx.fillRect(0, 0, W, H);
+  if (introT < 2.2){
+    const a = Math.min(1, introT/.5) * Math.min(1, (2.2 - introT)/.4);
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = CYAN; ctx.textAlign = 'center';
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.fillText('A LONG TIME AGO, IN A BOARDROOM', W/2, 120);
+    ctx.fillText('FAR, FAR AWAY....', W/2, 138);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  } else {
+    const crawlY = (introT - 2.2) * 55;
+    const bottom = H - 14, top = 30, N = bottom - top;
+    for (let i = 0; i < N; i++){
+      const t = i / N;                                 // 0 = bottom, 1 = top (far away)
+      const srcY = crawlY - i * (1 + t*1.7);
+      if (srcY < 0 || srcY >= crawlH) continue;
+      const dw = 360 * (1.18 - t*.85);
+      ctx.globalAlpha = t > .72 ? Math.max(0, (1 - t) / .28) : 1;
+      ctx.drawImage(crawlCv, 0, srcY|0, 360, 1, (W - dw)/2, bottom - i, dw, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (Math.floor(perfT*2) % 2 === 0){
+    ctx.fillStyle = '#4E5C78'; ctx.font = 'bold 8px monospace'; ctx.textAlign = 'right';
+    ctx.fillText('TAP TO SKIP ▸', W - 8, H - 8);
+    ctx.textAlign = 'left';
+  }
+}
 function drawFlame(x, y){
   const f = (perfT*24|0) % 3;
   const len = 4 + f*2;
@@ -1244,6 +1324,7 @@ function render(){
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-.5)*6*shake*2, (Math.random()-.5)*6*shake*2);
   drawBG();
+  if (state === 'intro'){ drawIntro(); ctx.restore(); return; }
   const p = player;
 
   for (const c of caps){
@@ -1444,14 +1525,14 @@ function render(){
       ctx.fillStyle = RED; ctx.font = 'bold 22px "Courier New", monospace';
       ctx.fillText('YOU\'VE BEEN FIRED', W/2, 106);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText('THE BOARD ACCEPTS YOUR RESIGNATION.', W/2, 126);
+      ctx.fillText('TOMOE-SAN, THE BOARD ACCEPTS YOUR RESIGNATION.', W/2, 126);
     } else {
       ctx.fillStyle = CYAN; ctx.font = 'bold 20px "Courier New", monospace';
       ctx.fillText('HOSTILE TAKEOVER COMPLETE', W/2, 100);
       ctx.fillStyle = AMB; ctx.font = 'bold 10px monospace';
       ctx.fillText('THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText('PLAYERS EVERYWHERE REJOICE', W/2, 134);
+      ctx.fillText('NICE FLYING, TOMOE-SAN — PLAYERS EVERYWHERE REJOICE', W/2, 134);
     }
     ctx.fillStyle = HULL; ctx.font = 'bold 11px monospace';
     ctx.fillText('SCORE ' + score + '   ·   HI ' + hiscore, W/2, 160);
@@ -1477,6 +1558,7 @@ addEventListener('keydown', e => {
   keys.set[e.key] = true; syncKeys();
   if (e.key === ' ' || e.key === 'Enter'){
     if (state === 'title') startGame();
+    else if (state === 'intro') beginPlay();
     else if (state === 'play' && paused) togglePause();
     else if (state === 'play' && e.key === ' ') activatePower();
     else if ((state === 'over' || state === 'win') && endT > 1){ reset(); state = 'play'; }
@@ -1497,14 +1579,15 @@ function toGame(cx, cy){
   return {x: (cx - r.left) / r.width * W, y: (cy - r.top) / r.height * H};
 }
 function cornerTap(g){
-  if (g.y < 16 && g.x > W - 24){ muted = !muted; return true; }         // mute
-  if (g.y < 16 && g.x > W - 46 && g.x <= W - 24){ togglePause(); return true; }  // pause
+  if (g.y < 18 && g.x > W - 26){ muted = !muted; return true; }         // mute chip
+  if (g.y < 18 && g.x > W - 52 && g.x <= W - 26){ togglePause(); return true; }  // pause chip
   return false;
 }
 stage.addEventListener('touchstart', e => {
   e.preventDefault(); audioInit();
   for (const t of e.changedTouches){
     const g = toGame(t.clientX, t.clientY);
+    if (state === 'intro'){ beginPlay(); continue; }                    // skip crawl
     if (cornerTap(g)) continue;
     if (paused && state === 'play'){ togglePause(); continue; }         // tap anywhere resumes
     if (state === 'over' || state === 'win'){ if (endT > 1){ reset(); state = 'play'; } continue; }
@@ -1538,6 +1621,7 @@ let mouseDown = false, mx2 = 0, my2 = 0;
 stage.addEventListener('mousedown', e => {
   audioInit();
   const g = toGame(e.clientX, e.clientY);
+  if (state === 'intro'){ beginPlay(); return; }
   if (cornerTap(g)) return;
   if (paused && state === 'play'){ togglePause(); return; }
   if (state === 'over' || state === 'win'){ if (endT > 1){ reset(); state = 'play'; } return; }
@@ -1557,6 +1641,9 @@ addEventListener('mouseup', () => mouseDown = false);
 function startGame(){
   audioInit();
   titleEl.style.display = 'none';
+  state = 'intro'; introT = 0; introChord = 0;
+}
+function beginPlay(){
   reset(); state = 'play';
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -1575,6 +1662,50 @@ window.__ff = secs => {
   return window.__dbg;
 };
 
+window.__intro = s => { if (state === 'intro'){ introT = s; render(); } return state; };
+window.__skip = () => { if (state === 'intro') beginPlay(); return state; };
+// collision self-tests (debug)
+window.__test = () => {
+  const res = {};
+  reset(); state = 'play'; lives = 4;
+  // A: normal shot kills a drone
+  enemies = []; shots = []; ebullets = []; player.invuln = 9; player.x = 30; player.y = 200;
+  spawnDrone(100, 0); enemies[0].x = 200; enemies[0].y0 = 100; enemies[0].y = 100; enemies[0].up = ()=>{};
+  const sc0 = score;
+  shots.push({x: 170, y: 100, vx: 300, vy: 0, w: 9, h: 3, dmg: 1});
+  for (let i = 0; i < 20; i++) update(1/60);
+  res.shotKillsDrone = score > sc0 && enemies.length === 0;
+  // B: enemy coin hits the player
+  enemies = []; ebullets = []; player.alive = true; player.invuln = 0; player.shield = 0;
+  player.x = 100; player.y = 100; const l0 = lives;
+  ebullets.push({x: 140, y: 100, vx: -150, vy: 0, coin: true, r: 3, t: 0});
+  for (let i = 0; i < 30; i++) update(1/60);
+  res.coinHitsPlayer = lives === l0 - 1;
+  // C: laser pierces through two drones (kills both)
+  enemies = []; shots = []; player.alive = false; player.respawn = 99;
+  spawnDrone(80, 0); spawnDrone(80, 0);
+  enemies[0].x = 240; enemies[0].y = 80; enemies[0].up = ()=>{};
+  enemies[1].x = 290; enemies[1].y = 80; enemies[1].up = ()=>{};
+  shots.push({x: 190, y: 80, vx: 420, vy: 0, w: 26, h: 3, dmg: 2, pierce: true, laser: true});
+  for (let i = 0; i < 25; i++) update(1/60);
+  res.laserPiercesBoth = enemies.length === 0;
+  // D: pierce damages each enemy only ONCE (3hp VP survives one 2dmg laser pass at 1hp)
+  enemies = []; shots = [];
+  spawnVP(90); const v = enemies[0]; v.x = 240; v.y = 90; v.up = ()=>{};
+  shots.push({x: 190, y: 90, vx: 420, vy: 0, w: 26, h: 3, dmg: 2, pierce: true, laser: true});
+  for (let i = 0; i < 25; i++) update(1/60);
+  res.laserSingleHitPerEnemy = v.hp === 1;
+  // E: body contact costs a life
+  enemies = []; shots = []; player.alive = true; player.respawn = 0; player.invuln = 0; player.shield = 0;
+  player.x = 150; player.y = 120; const l1 = lives;
+  spawnDrone(120, 0); enemies[0].x = 158; enemies[0].y = 120; enemies[0].up = ()=>{};
+  for (let i = 0; i < 8; i++) update(1/60);
+  res.contactHitsPlayer = lives === l1 - 1;
+  res.allPass = Object.keys(res).every(k => res[k] === true || k === 'allPass');
+  reset(); state = 'title';
+  return res;
+};
+
 // ---------- main loop ----------
 reset(); state = 'title';
 let last = 0;
@@ -1583,6 +1714,16 @@ function frame(t){
   last = t;
   if (state === 'play' && !paused) update(dt);
   else if (state !== 'play') scrollBG(dt, .5);
+  if (state === 'intro'){
+    introT += dt;
+    const chordAt = [2.2, 5.4, 8.6];                   // Am / F / G cinema pads
+    if (introChord < 3 && introT >= chordAt[introChord]){
+      const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62]][introChord];
+      for (const n of CH) osc('triangle', mtof(n), now(), 2.6, .05, 0, .35);
+      introChord++;
+    }
+    if ((introT - 2.2) * 55 > crawlH + 60) beginPlay();
+  }
   render();
   window.__dbg = window.__dbg || null;
   requestAnimationFrame(frame);
