@@ -1295,14 +1295,14 @@ function drawIntro(){
     ctx.fillText('FAR, FAR AWAY....', W/2, 138);
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
   } else {
-    const crawlY = (introT - 2.2) * 27.5;
+    const crawlY = (introT - 2.2) * 13.75;
     const bottom = H - 14, top = 30, N = bottom - top;
     for (let i = 0; i < N; i++){
       const t = i / N;                                 // 0 = bottom, 1 = top (far away)
-      const srcY = crawlY - i * (1 + t*1.7);
+      const srcY = crawlY - i * (1 + t*.9);            // gentler perspective compression
       if (srcY < 0 || srcY >= crawlH) continue;
-      const dw = 360 * (1.18 - t*.85);
-      ctx.globalAlpha = t > .72 ? Math.max(0, (1 - t) / .28) : 1;
+      const dw = 360 * (1.15 - t*.5);                  // shallower taper = more legible
+      ctx.globalAlpha = t > .78 ? Math.max(0, (1 - t) / .22) : 1;
       ctx.drawImage(crawlCv, 0, srcY|0, 360, 1, (W - dw)/2, bottom - i, dw, 1);
     }
     ctx.globalAlpha = 1;
@@ -1716,13 +1716,13 @@ function frame(t){
   else if (state !== 'play') scrollBG(dt, .5);
   if (state === 'intro'){
     introT += dt;
-    const chordAt = [2.2, 7.2, 12.2, 17.2];            // Am / F / G / Am cinema pads
-    if (introChord < 4 && introT >= chordAt[introChord]){
-      const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62],[45,57,60,64]][introChord];
-      for (const n of CH) osc('triangle', mtof(n), now(), 3.2, .05, 0, .35);
+    const chordAt = [2.2, 10, 18, 26, 34];             // Am / F / G / E / Am cinema pads
+    if (introChord < 5 && introT >= chordAt[introChord]){
+      const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62],[40,52,56,59],[45,57,60,64]][introChord];
+      for (const n of CH) osc('triangle', mtof(n), now(), 4, .05, 0, .35);
       introChord++;
     }
-    if ((introT - 2.2) * 27.5 > crawlH + 60) beginPlay();
+    if ((introT - 2.2) * 13.75 > crawlH + 60) beginPlay();
   }
   render();
   window.__dbg = window.__dbg || null;
