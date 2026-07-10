@@ -447,6 +447,7 @@ const sfx = {
     nz(t, .7, .24, 1200, 50, .16); osc('sine', 110, t, .6, .16, 26, 0);
     nz(t + .12, .5, .13, 800, 60, .12); osc('triangle', 70, t, .5, .1, 24, 0); },
   rack(){ const t = now(); nz(t, .18, .12, 8000, 2500, .1); osc('square', 620, t, .09, .04, 180, 0); },
+  msl(){ const t = now(); osc('triangle', 240, t, .08, .026, 90, 0); nz(t, .04, .012, 900, 300, 0); },  // minimalist thump
   whoosh(){ const t = now(); nz(t, .25, .05, 700, 4500, .1); },
   cap(){ const t = now(); osc('square', 880, t, .06, .05, 0, .2); osc('square', 1175, t + .07, .1, .05, 0, .2); },
   power(){ const t = now(); [523,659,784,1046,1318].forEach((f,i)=> osc('square', f, t + i*.07, .13, .05, 0, .25)); },
@@ -515,7 +516,11 @@ const bA  = [['X1',[81,_,_,80,_,77,_,_]], ['X2',[80,_,_,79,_,76,_,74]], ['X1',[8
 const bB  = [['X3',[82,_,81,_,78,_,75,78]], ['X1',[69,72,75,78,81,78,75,72]], ['X3',[82,_,81,_,78,_,75,78]], ['X2',[80,_,_,79,_,76,_,74]]];
 const bC  = [['X1',[_,_,81,_,_,_,80,_]], ['X2',[_,_,80,_,_,_,79,_]], ['X4',[_,_,81,_,_,_,84,_]], ['X2',[68,71,74,77,80,77,74,71]]];
 const bD  = [['X1',[69,72,75,78,81,78,75,72]], ['X3',[82,_,81,_,78,_,75,78]], ['X2',[75,76,78,_,81,_,78,76]], ['X1',[81,_,_,80,_,77,_,_]]];
+// upbeat heroic fanfare for the opening crawl (C major, 144 bpm)
+const cA = [['C',[72,76,79,84,_,79,76,79]], ['F',[81,_,79,77,81,_,84,81]], ['G',[79,_,74,71,74,79,83,79]], ['C',[84,_,79,_,76,_,72,_]]];
+const cB = [['Am',[76,_,72,76,81,_,76,72]], ['F',[77,81,84,_,81,77,72,77]], ['G',[74,79,83,_,86,83,79,74]], ['C',[84,_,88,_,84,79,76,72]]];
 const SONGS = {
+  crawl: song(60/144/4, [].concat(cA, cB)),
   // ~64s: intro, theme, B-section, variation, bridge, breakdown, reprises, climax, coda
   main: song(60/150/4, [].concat(mIN, mA, mB, mA2, mCs, mD, mB, mE, mA, mCo)),
   // ~60s: Em drive with dark low verse, lift section, breakdown and climax
@@ -525,7 +530,7 @@ const SONGS = {
 };
 function musicTick(){
   if (!AC) return;
-  if (muted || state !== 'play' || paused){ musicNext = AC.currentTime + .1; return; }
+  if (muted || paused || (state !== 'play' && state !== 'intro')){ musicNext = AC.currentTime + .1; return; }
   if (musicNext < AC.currentTime - .05) musicNext = AC.currentTime + .05;
   const S = SONGS[songName];
   while (musicNext < AC.currentTime + .18){
@@ -591,7 +596,8 @@ function reset(){
   parts = []; rings = []; pops = []; banners = [];
   player = {
     x: 50, y: H/2, alive: true, respawn: 0, invuln: 2.5, bank: 0, py: undefined,
-    speedLvl: 1, missile: false, dbl: false, laser: false, shield: 0,
+    lv: {SPEED:0, MISSILE:0, DOUBLE:0, LASER:0, OPTION:0, SHIELD:0},
+    weapon: 'none', shield: 0,
     meter: 0, fireT: 0, mslT: 0, options: [], trail: [],
   };
   spawned.length = 0;
@@ -1295,30 +1301,61 @@ const TL2 = [
 let TIMELINE = TL1;
 const spawned = [];
 
-// ---------- powers ----------
+// ---------- powers (3 incremental levels each, Gradius-style) ----------
+const SHIELD_CAP = [0, 2, 4, 6];
+function powLvl(idx){
+  const p = player, n = POWERS[idx];
+  return n === 'OPTION' ? p.lv.OPTION : p.lv[n];
+}
+function powerMaxed(idx){
+  const p = player, n = POWERS[idx];
+  if (n === 'DOUBLE') return p.lv.DOUBLE >= 3 && p.weapon === 'dbl';
+  if (n === 'LASER')  return p.lv.LASER >= 3 && p.weapon === 'laser';
+  if (n === 'SHIELD') return p.lv.SHIELD >= 3 && p.shield >= SHIELD_CAP[3];
+  return p.lv[n] >= 3;
+}
+function announce(text){                                  // 90s arcade announcer
+  try {
+    if (muted || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.pitch = .5; u.volume = .9;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch(err){}
+}
 function activatePower(){
   const p = player, i = p.meter;
   if (i <= 0) return;
+  if (powerMaxed(i-1)){ sfx.hit(); return; }
   const name = POWERS[i-1];
-  let ok = true;
-  if (name === 'SPEED')   { if (p.speedLvl >= 5) ok = false; else p.speedLvl++; }
-  if (name === 'MISSILE') { if (p.missile) ok = false; else p.missile = true; }
-  if (name === 'DOUBLE')  { if (p.dbl && !p.laser) ok = false; else { p.dbl = true; p.laser = false; } }
-  if (name === 'LASER')   { if (p.laser) ok = false; else { p.laser = true; p.dbl = false; } }
-  if (name === 'OPTION')  { if (p.options.length >= 2) ok = false; else p.options.push({x:p.x, y:p.y}); }
-  if (name === 'SHIELD')  { if (p.shield >= 3) ok = false; else p.shield = 3; }
-  if (ok){ p.meter = 0; sfx.power(); banner(name + ' UP!', 1.2); }
-  else sfx.hit();
+  if (name === 'SPEED')        p.lv.SPEED++;
+  else if (name === 'MISSILE') p.lv.MISSILE++;
+  else if (name === 'DOUBLE'){
+    if (p.weapon !== 'dbl'){ p.weapon = 'dbl'; if (!p.lv.DOUBLE) p.lv.DOUBLE = 1; }
+    else p.lv.DOUBLE++;
+  } else if (name === 'LASER'){
+    if (p.weapon !== 'laser'){ p.weapon = 'laser'; if (!p.lv.LASER) p.lv.LASER = 1; }
+    else p.lv.LASER++;
+  } else if (name === 'OPTION'){ p.lv.OPTION++; p.options.push({x: p.x, y: p.y}); }
+  else if (name === 'SHIELD'){ if (p.lv.SHIELD < 3) p.lv.SHIELD++; p.shield = SHIELD_CAP[p.lv.SHIELD]; }
+  p.meter = 0;
+  sfx.power();
+  banner(name + ' LV' + powLvl(i-1) + '!', 1.2);
+  announce(name === 'SPEED' ? 'SPEED UP' : name);
 }
 
 // ---------- combat ----------
 function fireFrom(x, y){
   const p = player;
-  if (p.laser){
-    shots.push({x, y, vx: 420, vy: 0, w: 26, h: 3, dmg: 2, pierce: true, laser: true});
+  if (p.weapon === 'laser' && p.lv.LASER > 0){
+    const L = p.lv.LASER;                                  // longer, hotter beam per level
+    shots.push({x, y, vx: 400 + L*30, vy: 0, w: 18 + L*8, h: 3, dmg: 1 + L, pierce: true, laser: true});
   } else {
     shots.push({x, y, vx: 300, vy: 0, w: 9, h: 3, dmg: 1});
-    if (p.dbl) shots.push({x, y, vx: 212, vy: -212, w: 7, h: 2, dmg: 1});
+    if (p.weapon === 'dbl' && p.lv.DOUBLE > 0){
+      shots.push({x, y, vx: 212, vy: -212, w: 7, h: 2, dmg: 1});                    // LV1: up
+      if (p.lv.DOUBLE >= 2) shots.push({x: x-24, y, vx: -260, vy: 0, w: 8, h: 3, dmg: 1});  // LV2: tail
+      if (p.lv.DOUBLE >= 3) shots.push({x, y, vx: 212, vy: 212, w: 7, h: 2, dmg: 1});       // LV3: down
+    }
   }
 }
 function playerDie(){
@@ -1399,7 +1436,7 @@ function update(dt){
   if (p.invuln > 0) p.invuln -= dt;
 
   if (p.alive){
-    const spd = 95 + p.speedLvl*30;
+    const spd = 110 + p.lv.SPEED*35;
     p.x += keys.vx * spd * dt; p.y += keys.vy * spd * dt;
     p.x = Math.max(10, Math.min(W-40, p.x));
     p.y = Math.max(14, Math.min(GROUND-12, p.y));
@@ -1417,25 +1454,32 @@ function update(dt){
       p.options[i].x = pos.x; p.options[i].y = pos.y;
     }
     p.fireT -= dt;
+    const lasing = p.weapon === 'laser' && p.lv.LASER > 0;
     if (p.fireT <= 0){
-      p.fireT = p.laser ? .2 : .16;
+      p.fireT = lasing ? (p.lv.LASER >= 3 ? .17 : .2) : .16;
       fireFrom(p.x + 14, p.y);
       for (const o of p.options) fireFrom(o.x + 12, o.y);
-      p.laser ? sfx.laser() : sfx.shoot();
+      lasing ? sfx.laser() : sfx.shoot();
     }
-    if (p.missile){
+    if (p.lv.MISSILE > 0){
       p.mslT -= dt;
       if (p.mslT <= 0){
-        p.mslT = .55;
+        p.mslT = p.lv.MISSILE >= 2 ? .38 : .55;            // LV2: faster reload
         missiles.push({x: p.x, y: p.y+4, vy: 130, crawl: false});
+        if (p.lv.MISSILE >= 3) missiles.push({x: p.x, y: p.y-4, vy: -130, crawl: false});  // LV3: ceiling missile
+        sfx.msl();
       }
     }
   }
 
   for (const s of shots){ s.x += s.vx*dt; s.y += s.vy*dt; }
-  shots = shots.filter(s => s.x < W+30 && s.y > -10);
+  shots = shots.filter(s => s.x < W+30 && s.x > -30 && s.y > -10 && s.y < H+10);
   for (const m of missiles){
-    if (!m.crawl){ m.x += 60*dt; m.y += m.vy*dt; if (m.y >= GROUND-9){ m.y = GROUND-9; m.crawl = true; } }
+    if (!m.crawl){
+      m.x += 60*dt; m.y += m.vy*dt;
+      if (m.vy > 0 && m.y >= GROUND-9){ m.y = GROUND-9; m.crawl = true; }
+      if (m.vy < 0 && m.y <= 24){ m.y = 24; m.crawl = true; }        // crawls the ceiling
+    }
     else m.x += 170*dt;
   }
   missiles = missiles.filter(m => m.x < W+10);
@@ -1632,7 +1676,11 @@ function update(dt){
   for (const c of caps){ c.t += dt; c.x -= 34*dt; c.y += Math.sin(c.t*4)*10*dt; }
   caps = caps.filter(c => {
     if (p.alive && Math.abs(c.x-p.x) < 12 && Math.abs(c.y-p.y) < 10){
-      p.meter = p.meter % 6 + 1; sfx.cap(); pop(c.x, c.y - 10, 'POWER');
+      let m = p.meter;                                 // advance, skipping maxed-out cells
+      for (let k = 0; k < 6; k++){ m = m % 6 + 1; if (!powerMaxed(m-1)) break; }
+      if (powerMaxed(m-1)){ p.meter = 0; addScore(500); pop(c.x, c.y - 10, 'ALL MAXED +500'); }
+      else { p.meter = m; pop(c.x, c.y - 10, 'POWER'); }
+      sfx.cap();
       return false;
     }
     return c.x > -10;
@@ -1842,18 +1890,25 @@ function drawHUD(){
   const cw = W/6;
   for (let i = 0; i < 6; i++){
     const sel = player.meter === i+1;
-    ctx.fillStyle = DK;
+    const maxed = state === 'play' && powerMaxed(i);
+    ctx.fillStyle = maxed ? '#060A16' : DK;              // maxed cells grey out
     ctx.fillRect(i*cw+1, GROUND+3, cw-2, H-GROUND-6);
-    if (sel){
-      ctx.globalAlpha = .75 + .25*Math.sin(perfT*7);   // pulsing selection
+    if (sel && !maxed){
+      ctx.globalAlpha = .75 + .25*Math.sin(perfT*7);     // pulsing selection
       ctx.fillStyle = AMB;
       ctx.fillRect(i*cw+1, GROUND+3, cw-2, H-GROUND-6);
       ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(255,194,75,.35)'; ctx.fillRect(i*cw+1, GROUND+1, cw-2, 1);
     }
-    if (sel){ ctx.fillStyle = 'rgba(255,194,75,.35)'; ctx.fillRect(i*cw+1, GROUND+1, cw-2, 1); }
-    ctx.fillStyle = sel ? '#05070F' : '#6E7FA0';
+    ctx.fillStyle = maxed ? '#39435C' : sel ? '#05070F' : '#6E7FA0';
     ctx.font = 'bold 8px "Courier New", monospace'; ctx.textAlign = 'center';
-    ctx.fillText(POWERS[i], i*cw + cw/2, GROUND + 15);
+    ctx.fillText(maxed ? POWERS[i] + ' MAX' : POWERS[i], i*cw + cw/2, GROUND + 12);
+    // level pips (0-3)
+    const lv2 = state === 'play' ? powLvl(i) : 0;
+    for (let k = 0; k < 3; k++){
+      ctx.fillStyle = k < lv2 ? (maxed ? '#6E5A20' : AMB) : '#1A2340';
+      ctx.fillRect(i*cw + cw/2 - 11 + k*8, GROUND + 16, 6, 2);
+    }
   }
   ctx.textAlign = 'left';
   let by = 46;
@@ -1917,6 +1972,7 @@ function chooseLevel(i){
   level = L.n;
   sfx.power();
   state = 'intro'; introT = 0; introChord = 0;
+  setSong('crawl');
 }
 function drawIntro(){
   ctx.fillStyle = 'rgba(3,4,10,.55)';                  // dim the city for cinema
@@ -2200,8 +2256,9 @@ function render(){
     ctx.fillStyle = AMB; ctx.fillRect(-10-len, -1, len, 3);
     ctx.fillStyle = WHT; ctx.fillRect(-10-Math.ceil(len/2), 0, Math.ceil(len/2), 1);
     ctx.drawImage(blink ? shipSpr2 : shipSpr, -11, -4);
-    if (p.fireT > (p.laser ? .2 : .16) - .05){         // muzzle flash
-      ctx.fillStyle = p.laser ? MAG : AMB; ctx.fillRect(13, -2, 4, 4);
+    const lz = p.weapon === 'laser' && p.lv.LASER > 0;
+    if (p.fireT > (lz ? .17 : .16) - .05){             // muzzle flash
+      ctx.fillStyle = lz ? MAG : AMB; ctx.fillRect(13, -2, 4, 4);
       ctx.fillStyle = WHT; ctx.fillRect(14, -1, 2, 2);
     }
     ctx.restore();
@@ -2518,6 +2575,19 @@ window.__test = () => {
   spawnDrone(60, 0); const d3 = enemies[1]; d3.x = 262; d3.y = 60; d3.up = (e,dt)=>{ e.x -= 60*dt; };
   for (let i = 0; i < 30; i++) update(1/60);
   res.gateFriesEnemies = !enemies.includes(d3);
+  // I: capsule meter skips maxed powers; activation levels up
+  enemies = []; shots = []; ebullets = []; caps = [];
+  player.alive = true; player.invuln = 9; player.meter = 0;
+  const wasMuted = muted; muted = true;                 // keep the announcer quiet in tests
+  caps.push({x: player.x, y: player.y, t: 0});
+  update(1/60);
+  activatePower();
+  const s1 = player.lv.SPEED === 1 && player.meter === 0;
+  player.lv.SPEED = 3;
+  caps.push({x: player.x, y: player.y, t: 0});
+  update(1/60);
+  res.powersLevelAndSkip = s1 && player.meter === 2;    // SPEED maxed -> lands on MISSILE
+  muted = wasMuted;
   res.allPass = Object.keys(res).every(k => res[k] === true || k === 'allPass');
   reset(); state = 'title';
   return res;
@@ -2533,23 +2603,10 @@ function frame(t){
   else if (state !== 'play') scrollBG(dt, .5);
   if (state === 'intro'){
     introT += dt;
+    // fanfare handled by the sequencer ('crawl' song)
     if (level === 1){
-      const chordAt = [2.2, 8, 14, 20, 26];            // Am / F / G / E / Am cinema pads
-      if (introChord < 5 && introT >= chordAt[introChord]){
-        const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62],[40,52,56,59],[45,57,60,64]][introChord];
-        for (const n of CH) osc('triangle', mtof(n), now(), 4, .05, 0, .35);
-        introChord++;
-      }
       if ((introT - 2.2) * 20 > crawlH + 60) beginPlay();
-    } else {
-      const chordAt = [0.4, 3.4];                      // Em / B7 mission-brief pads
-      if (introChord < 2 && introT >= chordAt[introChord]){
-        const CH = [[40,52,55,59],[35,47,51,54]][introChord];
-        for (const n of CH) osc('triangle', mtof(n), now(), 3.2, .05, 0, .35);
-        introChord++;
-      }
-      if (introT > 6.5) beginPlay();
-    }
+    } else if (introT > 6.5) beginPlay();
   }
   render();
   window.__dbg = window.__dbg || null;
