@@ -1295,7 +1295,7 @@ function drawIntro(){
     ctx.fillText('FAR, FAR AWAY....', W/2, 138);
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
   } else {
-    const crawlY = (introT - 2.2) * 55;
+    const crawlY = (introT - 2.2) * 27.5;
     const bottom = H - 14, top = 30, N = bottom - top;
     for (let i = 0; i < N; i++){
       const t = i / N;                                 // 0 = bottom, 1 = top (far away)
@@ -1716,13 +1716,13 @@ function frame(t){
   else if (state !== 'play') scrollBG(dt, .5);
   if (state === 'intro'){
     introT += dt;
-    const chordAt = [2.2, 5.4, 8.6];                   // Am / F / G cinema pads
-    if (introChord < 3 && introT >= chordAt[introChord]){
-      const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62]][introChord];
-      for (const n of CH) osc('triangle', mtof(n), now(), 2.6, .05, 0, .35);
+    const chordAt = [2.2, 7.2, 12.2, 17.2];            // Am / F / G / Am cinema pads
+    if (introChord < 4 && introT >= chordAt[introChord]){
+      const CH = [[45,57,60,64],[41,53,57,60],[43,55,59,62],[45,57,60,64]][introChord];
+      for (const n of CH) osc('triangle', mtof(n), now(), 3.2, .05, 0, .35);
       introChord++;
     }
-    if ((introT - 2.2) * 55 > crawlH + 60) beginPlay();
+    if ((introT - 2.2) * 27.5 > crawlH + 60) beginPlay();
   }
   render();
   window.__dbg = window.__dbg || null;
