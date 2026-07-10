@@ -1314,11 +1314,27 @@ function powerMaxed(idx){
   if (n === 'SHIELD') return p.lv.SHIELD >= 3 && p.shield >= SHIELD_CAP[3];
   return p.lv[n] >= 3;
 }
-function announce(text){                                  // 90s arcade announcer
+// Gradius-style power-up voice: bright, clipped, robotic.
+// Prefers Apple's "Fred" (the most arcade-cabinet voice on iPhone/Mac).
+let gVoice = null;
+function pickVoice(){
+  try {
+    const vs = speechSynthesis.getVoices();
+    gVoice = vs.find(v => /fred/i.test(v.name)) ||
+             vs.find(v => /^en[-_]/i.test(v.lang) && /alex|daniel|male/i.test(v.name)) ||
+             vs.find(v => /^en/i.test(v.lang)) || null;
+  } catch(err){}
+}
+if ('speechSynthesis' in window){
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function announce(text){
   try {
     if (muted || !('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05; u.pitch = .5; u.volume = .9;
+    if (gVoice) u.voice = gVoice;
+    u.rate = 1.2; u.pitch = 1; u.volume = 1;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } catch(err){}
 }
@@ -1340,7 +1356,7 @@ function activatePower(){
   p.meter = 0;
   sfx.power();
   banner(name + ' LV' + powLvl(i-1) + '!', 1.2);
-  announce(name === 'SPEED' ? 'SPEED UP' : name);
+  announce(name === 'SPEED' ? 'speed up' : name === 'SHIELD' ? 'force field' : name.toLowerCase());
 }
 
 // ---------- combat ----------
