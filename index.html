@@ -41,7 +41,7 @@
 <div id="title">
   <div class="sub">A GRADIUS-STYLE MISSION</div>
   <h1>HOSTILE&nbsp;TAKEOVER</h1>
-  <div class="sub" style="color:#8FA0BF; letter-spacing:.2em;">TOMOE-SAN VS THE GAMES INDUSTRY</div>
+  <div class="sub" style="color:#8FA0BF; letter-spacing:.2em;">SHIRANAI HITO VS THE GAMES INDUSTRY</div>
   <div class="how">
     DRAG TO FLY · AUTO-FIRE · GRAB <span style="color:#FFC24B">■</span> CAPSULES · TAP THE POWER BAR TO UPGRADE
   </div>
@@ -384,7 +384,7 @@ let crawlH = 0;
     "",
     "LOOT BOXES FALL LIKE RAIN. LIVE SERVICES NEVER END. FUN IS AT AN ALL-TIME LOW.",
     "",
-    "ONE HERO DARES TO DEMAND BETTER: TOMOE-SAN, ACE PILOT OF THE LEGENDARY STARFIGHTER CUSTOMER-1.",
+    "ONE HERO DARES TO DEMAND BETTER: SHIRANAI HITO, ACE PILOT OF THE LEGENDARY STARFIGHTER CUSTOMER-1.",
     "",
     "TODAY, THE REFUND BEGINS...",
   ];
@@ -2416,12 +2416,12 @@ function drawIntro(){
     const brief = level === 3
       ? ['SECTOR 3 · LOOT BOX LAGOON',
          'THE WHALE HARVESTER TRAWLS FOR BIG SPENDERS.',
-         'EVERY LOOT BOX IS A GAMBLE, TOMOE-SAN.',
+         'EVERY LOOT BOX IS A GAMBLE, SHIRANAI HITO.',
          'BEACH THE BEAST. PUBLISH THE ODDS.',
          '⚠ THE HOUSE ALWAYS FIRES FIRST ⚠']
       : ['SECTOR 2 · DATA CENTER DELTA',
          'THE ALGORITHM HOARDS THE INDUSTRY\'S SERVERS.',
-         'FIREWALLS BLOCK YOUR PATH, TOMOE-SAN.',
+         'FIREWALLS BLOCK YOUR PATH, SHIRANAI HITO.',
          'CUT THE POWER. END THE UPTIME.',
          '⚠ EXPECT HEAVIER RESISTANCE ⚠'];
     ctx.fillStyle = CYAN; ctx.font = 'bold 16px "Courier New", monospace';
@@ -2869,7 +2869,7 @@ function render(){
       ctx.fillStyle = RED; ctx.font = 'bold 22px "Courier New", monospace';
       ctx.fillText('YOU\'VE BEEN FIRED', W/2, 106);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText('TOMOE-SAN, THE BOARD ACCEPTS YOUR RESIGNATION.', W/2, 126);
+      ctx.fillText('SHIRANAI HITO, THE BOARD ACCEPTS YOUR RESIGNATION.', W/2, 126);
       ctx.fillStyle = '#5C6C8C';
       ctx.fillText('EXIT SURVEY: 47 QUESTIONS. ALL MANDATORY.', W/2, 140);
     } else {
@@ -2879,9 +2879,9 @@ function render(){
       ctx.fillText(level === 3 ? 'THE WHALE HARVESTER HAS BEEN BEACHED'
                  : level === 2 ? 'THE ALGORITHM HAS BEEN DEPRECATED' : 'THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText(level === 3 ? 'GACHA ODDS: FINALLY PUBLISHED · NICE FLYING, TOMOE-SAN'
-                 : level === 2 ? 'SERVERS NOW RUN ACTUAL GAMES · NICE FLYING, TOMOE-SAN'
-                               : 'ALL MICROTRANSACTIONS REFUNDED · NICE FLYING, TOMOE-SAN', W/2, 134);
+      ctx.fillText(level === 3 ? 'GACHA ODDS: FINALLY PUBLISHED · NICE FLYING, SHIRANAI HITO'
+                 : level === 2 ? 'SERVERS NOW RUN ACTUAL GAMES · NICE FLYING, SHIRANAI HITO'
+                               : 'ALL MICROTRANSACTIONS REFUNDED · NICE FLYING, SHIRANAI HITO', W/2, 134);
     }
     ctx.fillStyle = HULL; ctx.font = 'bold 11px monospace';
     ctx.fillText('SCORE ' + score + '   ·   HI ' + hiscore, W/2, 160);
