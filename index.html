@@ -492,6 +492,9 @@ const sfx = {
     nz(t + .12, .5, .13, 800, 60, .12); osc('triangle', 70, t, .5, .1, 24, 0); },
   rack(){ const t = now(); nz(t, .18, .12, 8000, 2500, .1); osc('square', 620, t, .09, .04, 180, 0); },
   msl(){ const t = now(); osc('triangle', 240, t, .08, .026, 90, 0); nz(t, .04, .012, 900, 300, 0); },  // minimalist thump
+  mslHit(){ const t = now(); osc('sine', 130, t, .09, .05, 50, 0); nz(t, .05, .025, 700, 200, 0); },     // dull impact
+  shieldUp(){ const t = now(); nz(t, .3, .035, 1200, 3200, .2); osc('sine', 320, t, .3, .04, 540, .2, false, .05); },
+  shieldHit(){ const t = now(); osc('sine', 620, t, .06, .045, 340, .1); },                              // soft deflect
   whoosh(){ const t = now(); nz(t, .25, .05, 700, 4500, .1); },
   cap(){ const t = now(); osc('square', 880, t, .06, .05, 0, .2); osc('square', 1175, t + .07, .1, .05, 0, .2); },
   power(){ const t = now(); [523,659,784,1046,1318].forEach((f,i)=> osc('square', f, t + i*.07, .13, .05, 0, .25)); },
@@ -1041,13 +1044,13 @@ function addScore(n){ score += n; if (score > hiscore){ hiscore = score; localSt
 
 // ---------- enemies ----------
 function spawnDrone(y0, phase, drop){
-  enemies.push({kind:'drone', x: W+16, y: y0, hp: 1, t: phase||0, drop: !!drop, score: 100, r: 9,
+  enemies.push({kind:'drone', x: W+16, y: y0, hp: 2, t: phase||0, drop: !!drop, score: 100, r: 9,
     up(e, dt){ e.t += dt; e.x -= 72*dt; e.y = e.y0 + Math.sin(e.t*3.2)*26; },
     y0: y0});
 }
 function spawnRing(cy){
   for (let i = 0; i < 8; i++)
-    enemies.push({kind:'drone', x: W+46, y: cy, hp: 1, t: 0, drop: i === 0, score: 150, r: 9,
+    enemies.push({kind:'drone', x: W+46, y: cy, hp: 2, t: 0, drop: i === 0, score: 150, r: 9,
       a0: i*Math.PI/4, cy: cy,
       up(e, dt){
         e.t += dt;
@@ -1056,7 +1059,7 @@ function spawnRing(cy){
       }});
 }
 function spawnVP(y0, drop){
-  enemies.push({kind:'vp', x: W+16, y: y0, hp: 3, t: 0, fire: 1.1, drop: !!drop, score: 300, r: 10,
+  enemies.push({kind:'vp', x: W+16, y: y0, hp: 5, t: 0, fire: 1.1, drop: !!drop, score: 300, r: 10,
     up(e, dt){
       e.t += dt;
       e.x -= (e.x > W-90 ? 60 : 14) * dt;
@@ -1071,7 +1074,7 @@ function spawnVP(y0, drop){
     }});
 }
 function spawnLawyer(y0, drop){
-  enemies.push({kind:'lawyer', x: W+18, y: y0, hp: 5, t: 0, dir: 1, fire: 2, drop: !!drop, score: 500, r: 11,
+  enemies.push({kind:'lawyer', x: W+18, y: y0, hp: 8, t: 0, dir: 1, fire: 2, drop: !!drop, score: 500, r: 11,
     up(e, dt){
       e.t += dt; e.x -= 46*dt;
       e.y += e.dir * 55 * dt;
@@ -1085,7 +1088,7 @@ function spawnLawyer(y0, drop){
     }});
 }
 function spawnInfluencer(y0, drop){
-  enemies.push({kind:'influencer', x: W+14, y: y0, hp: 1, t: 0, dash: false, drop: !!drop, score: 200, r: 8, ry: 5,
+  enemies.push({kind:'influencer', x: W+14, y: y0, hp: 2, t: 0, dash: false, drop: !!drop, score: 200, r: 8, ry: 5,
     up(e, dt){
       e.t += dt;
       if (!e.dash){
@@ -1096,7 +1099,7 @@ function spawnInfluencer(y0, drop){
     }});
 }
 function spawnTurret(drop){
-  enemies.push({kind:'turret', x: W+16, y: GROUND-11, hp: 4, t: 0, fire: 1.3, drop: !!drop, score: 400, r: 12, ry: 8,
+  enemies.push({kind:'turret', x: W+16, y: GROUND-11, hp: 6, t: 0, fire: 1.3, drop: !!drop, score: 400, r: 12, ry: 8,
     up(e, dt){
       e.t += dt; e.x -= 30*dt;
       e.fire -= dt;
@@ -1109,14 +1112,14 @@ function spawnTurret(drop){
     }});
 }
 function spawnRack(y0, drop){
-  enemies.push({kind:'rack', x: W+12, y: y0, hp: 2, t: Math.random()*7, vx: 30+Math.random()*26,
+  enemies.push({kind:'rack', x: W+12, y: y0, hp: 3, t: Math.random()*7, vx: 30+Math.random()*26,
     drop: !!drop, score: 50, r: 9, ry: 13,
     up(e, dt){ e.t += dt; e.x -= e.vx*dt; e.y += Math.sin(e.t*1.5)*8*dt; }});
 }
 function spawnMidboss(){
   banner('⚠ MIDDLE MANAGER · \"LET\'S TAKE THIS OFFLINE\" ⚠', 3);
   sfx.warn();
-  enemies.push({kind:'midboss', name:'mgr', x: W+40, y: H/2, y0: H/2, hp: 45, maxhp: 45, t: 0,
+  enemies.push({kind:'midboss', name:'mgr', x: W+40, y: H/2, y0: H/2, hp: 68, maxhp: 68, t: 0,
     fire: 2, sum: 4, drop: true, score: 800, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
@@ -1141,7 +1144,7 @@ function spawnMidboss(){
 function spawnCFO(){
   banner('⚠ THE CFO · FUN IS AN UNMONETIZED ASSET ⚠', 3);
   sfx.warn();
-  enemies.push({kind:'midboss', name:'cfo', x: W+40, y: H/2, y0: H/2, hp: 60, maxhp: 60, t: 0,
+  enemies.push({kind:'midboss', name:'cfo', x: W+40, y: H/2, y0: H/2, hp: 90, maxhp: 90, t: 0,
     fire: 1.8, sum: 5, alt: 0, drop: true, score: 1200, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
@@ -1178,12 +1181,12 @@ function spawnGate(){                                  // firewall: full-height 
 }
 function spawnSwarm(y0){                               // DDoS: fast V-formation of bits
   for (let i = 0; i < 6; i++)
-    enemies.push({kind:'ddos', x: W+14+i*12, y: y0 + Math.abs(i-2.5)*13 - 16, hp: 1, t: i*.2,
+    enemies.push({kind:'ddos', x: W+14+i*12, y: y0 + Math.abs(i-2.5)*13 - 16, hp: 2, t: i*.2,
       drop: i === 5, score: 80, r: 5, ry: 5,
       up(e, dt){ e.t += dt; e.x -= 165*dt; e.y += Math.sin(e.t*6)*12*dt; }});
 }
 function spawnTurretC(){                               // ceiling-mounted HR turret
-  enemies.push({kind:'turretC', x: W+16, y: 24, hp: 4, t: 0, fire: 1.5, drop: false, score: 400, r: 12, ry: 8,
+  enemies.push({kind:'turretC', x: W+16, y: 24, hp: 6, t: 0, fire: 1.5, drop: false, score: 400, r: 12, ry: 8,
     up(e, dt){
       e.t += dt; e.x -= 30*dt;
       e.fire -= dt;
@@ -1198,7 +1201,7 @@ function spawnTurretC(){                               // ceiling-mounted HR tur
 function spawnSysadmin(){
   banner('⚠ THE SYSADMIN · IT WORKS ON MY MACHINE ⚠', 3);
   sfx.warn();
-  enemies.push({kind:'midboss', name:'sys', x: W+40, y: H/2, y0: H/2, hp: 55, maxhp: 55, t: 0,
+  enemies.push({kind:'midboss', name:'sys', x: W+40, y: H/2, y0: H/2, hp: 83, maxhp: 83, t: 0,
     fire: 1.7, sum: 5, drop: true, score: 1000, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
@@ -1222,11 +1225,11 @@ function spawnSysadmin(){
 // ---------- creative hazards & satire units ----------
 function spawnPopup(px, py){                            // pop-up ad: literally blocks your shots
   enemies.push({kind:'popup', x: px || 140 + Math.random()*220, y: py || 50 + Math.random()*(GROUND-110),
-    hp: 2, t: 0, life: 4.5, warm: .4, drop: false, score: 50, r: 15, ry: 11, noContact: true,
+    hp: 3, t: 0, life: 4.5, warm: .4, drop: false, score: 50, r: 15, ry: 11, noContact: true,
     up(e, dt){ e.t += dt; if (e.warm > 0) e.warm -= dt; else e.life -= dt; if (e.life <= 0) e.gone = true; }});
 }
 function spawnMeeting(y0){                              // kill it before it splits into breakouts
-  enemies.push({kind:'meeting', x: W+20, y: y0, hp: 6, t: 0, drop: true, score: 400, r: 13, ry: 9,
+  enemies.push({kind:'meeting', x: W+20, y: y0, hp: 9, t: 0, drop: true, score: 400, r: 13, ry: 9,
     up(e, dt){
       e.t += dt; e.x -= 26*dt; e.y += Math.sin(e.t*1.4)*10*dt;
       if (e.t > 7 && !e.split){
@@ -1240,7 +1243,7 @@ function spawnMeeting(y0){                              // kill it before it spl
     }});
 }
 function spawnChute(px){                                // golden parachute
-  enemies.push({kind:'chute', x: px, y: -16, hp: 2, t: Math.random()*5, drop: Math.random() < .3,
+  enemies.push({kind:'chute', x: px, y: -16, hp: 3, t: Math.random()*5, drop: Math.random() < .3,
     score: 250, r: 8, ry: 15,
     up(e, dt){
       e.t += dt; e.y += 26*dt; e.x += Math.sin(e.t*1.6)*20*dt - 8*dt;
@@ -1248,7 +1251,7 @@ function spawnChute(px){                                // golden parachute
     }});
 }
 function spawnCrawler(ceil){                            // floor/ceiling scuttler
-  enemies.push({kind:'crawl', x: W+12, y: ceil ? 25 : GROUND-8, ceil: !!ceil, hp: 2, t: Math.random()*5,
+  enemies.push({kind:'crawl', x: W+12, y: ceil ? 25 : GROUND-8, ceil: !!ceil, hp: 3, t: Math.random()*5,
     drop: Math.random() < .25, score: 150, r: 9, ry: 6,
     up(e, dt){ e.t += dt; e.x -= 55*dt; }});
 }
@@ -1267,12 +1270,12 @@ function spawnSweep(gap){                               // Algorithm: paywall wi
 }
 // ---------- sector 3 enemies ----------
 function spawnLoot(x0){                                 // falling loot box: shooting it is a gamble
-  enemies.push({kind:'loot', x: x0 || (W-80 - Math.random()*240), y: -12, hp: 2, t: Math.random()*7,
+  enemies.push({kind:'loot', x: x0 || (W-80 - Math.random()*240), y: -12, hp: 3, t: Math.random()*7,
     drop: false, score: 100, r: 9, ry: 8,
     up(e, dt){ e.t += dt; e.y += 44*dt; e.x -= 12*dt; if (e.y > GROUND-8) e.gone = true; }});
 }
 function spawnWhalet(y0, drop){                         // premium whale calf
-  enemies.push({kind:'whalet', x: W+20, y: y0, hp: 8, t: 0, fire: 1.6, drop: !!drop, score: 600, r: 14, ry: 7,
+  enemies.push({kind:'whalet', x: W+20, y: y0, hp: 12, t: 0, fire: 1.6, drop: !!drop, score: 600, r: 14, ry: 7,
     up(e, dt){
       e.t += dt; e.x -= 40*dt; e.y = e.y0 + Math.sin(e.t*1.4)*34;
       e.fire -= dt;
@@ -1287,7 +1290,7 @@ function spawnWhalet(y0, drop){                         // premium whale calf
 function spawnPitBoss(){
   banner('⚠ THE PIT BOSS · THE HOUSE ALWAYS WINS ⚠', 3);
   sfx.warn();
-  enemies.push({kind:'midboss', name:'pit', x: W+40, y: H/2, y0: H/2, hp: 70, maxhp: 70, t: 0,
+  enemies.push({kind:'midboss', name:'pit', x: W+40, y: H/2, y0: H/2, hp: 105, maxhp: 105, t: 0,
     fire: 1.6, sum: 4, drop: true, score: 1500, r: 16, ry: 17,
     up(e, dt){
       e.t += dt;
@@ -1309,7 +1312,7 @@ function spawnPitBoss(){
 }
 function spawnBoss3(){
   boss = { type:'whale', hw: 50, hh: 30,
-           x: W+130, y: -70, hp: 280, maxhp: 280, t: 0, flash: 0, atk: 2.2, entered: false,
+           x: W+130, y: -70, hp: 420, maxhp: 420, t: 0, flash: 0, atk: 2.2, entered: false,
            beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0, breach: null };
   banner('⚠ THE WHALE HARVESTER ⚠', 3);
   setSong('boss');
@@ -1317,14 +1320,14 @@ function spawnBoss3(){
 // ---------- final bosses ----------
 function spawnBoss(){
   boss = { type:'share', hw: BOSS_HW, hh: BOSS_HH,
-           x: W+120, y: -70, hp: 300, maxhp: 300, t: 0, flash: 0, atk: 2.2, entered: false,
+           x: W+120, y: -70, hp: 450, maxhp: 450, t: 0, flash: 0, atk: 2.2, entered: false,
            beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0 };
   banner('⚠ THE SHAREHOLDER ⚠', 3);
   setSong('boss');
 }
 function spawnBoss2(){
   boss = { type:'algo', hw: 40, hh: 48,
-           x: W+120, y: -70, hp: 280, maxhp: 280, t: 0, flash: 0, atk: 2, entered: false,
+           x: W+120, y: -70, hp: 420, maxhp: 420, t: 0, flash: 0, atk: 2, entered: false,
            beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0 };
   banner('⚠ THE ALGORITHM ⚠', 3);
   setSong('boss');
@@ -1607,7 +1610,7 @@ function announce(text){
     if (muted || !('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(text + '!');   // exclamation lifts the prosody
     if (gVoice) u.voice = gVoice;
-    u.rate = 1.12; u.pitch = 1.15; u.volume = 1;
+    u.rate = 1.12; u.pitch = 1.15; u.volume = .7;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } catch(err){}
 }
@@ -1627,7 +1630,7 @@ function activatePower(){
   } else if (name === 'OPTION'){ p.lv.OPTION++; p.options.push({x: p.x, y: p.y}); }
   else if (name === 'SHIELD'){ if (p.lv.SHIELD < 3) p.lv.SHIELD++; p.shield = SHIELD_CAP[p.lv.SHIELD]; }
   p.meter = 0;
-  sfx.power();
+  if (name === 'SHIELD') sfx.shieldUp(); else sfx.power();
   banner(name + ' LV' + powLvl(i-1) + '!', 1.2);
   announce(name === 'SPEED' ? 'speed up' : name === 'SHIELD' ? 'force field' : name.toLowerCase());
 }
@@ -1662,7 +1665,7 @@ function hitPlayer(){
   if (p.shield > 0){
     if (p.shieldCd > 0) return;                    // force field is already soaking this beam tick
     p.shield--; p.shieldCd = .3;
-    sfx.hit(); burst(p.x+10, p.y, CYAN, 6);
+    sfx.shieldHit(); burst(p.x+10, p.y, CYAN, 6);
     if (p.shield === 0) pop(p.x, p.y - 16, 'SHIELD DOWN');
     return;
   }
@@ -1843,7 +1846,7 @@ function update(dt){
     }
     for (const m of missiles){
       if (m.dead) continue;
-      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; e.flash = .07; m.dead = true; }
+      if (Math.abs(m.x - e.x) < e.r+5 && Math.abs(m.y - e.y) < hy+5){ e.hp -= 2; e.flash = .07; m.dead = true; sfx.mslHit(); }
     }
     if (p.alive && !e.noContact && Math.abs(e.x-p.x) < e.r+5 && Math.abs(e.y-p.y) < hy+4){
       if (p.shield > 0 && p.invuln <= 0){ e.hp -= 3; e.flash = .07; }   // force field rams
@@ -2017,7 +2020,7 @@ function update(dt){
       }
       for (const m of missiles){
         if (m.dead) continue;
-        if (Math.abs(m.x-b.x) < b.hw-4 && Math.abs(m.y-b.y) < b.hh){ b.hp -= 2; b.flash = .06; m.dead = true; }
+        if (Math.abs(m.x-b.x) < b.hw-4 && Math.abs(m.y-b.y) < b.hh){ b.hp -= 2; b.flash = .06; m.dead = true; sfx.mslHit(); }
       }
       shots = shots.filter(s => !s.dead);
       missiles = missiles.filter(m => !m.dead);
@@ -3039,7 +3042,7 @@ window.__test = () => {
   enemies = []; shots = []; ebullets = []; player.invuln = 9; player.x = 30; player.y = 200;
   spawnDrone(100, 0); enemies[0].x = 200; enemies[0].y0 = 100; enemies[0].y = 100; enemies[0].up = ()=>{};
   const sc0 = score;
-  shots.push({x: 170, y: 100, vx: 300, vy: 0, w: 9, h: 3, dmg: 1});
+  shots.push({x: 170, y: 100, vx: 300, vy: 0, w: 9, h: 3, dmg: 2});
   for (let i = 0; i < 20; i++) update(1/60);
   res.shotKillsDrone = score > sc0 && enemies.length === 0;
   // B: enemy coin hits the player
@@ -3061,7 +3064,7 @@ window.__test = () => {
   spawnVP(90); const v = enemies[0]; v.x = 240; v.y = 90; v.up = ()=>{};
   shots.push({x: 190, y: 90, vx: 420, vy: 0, w: 26, h: 3, dmg: 2, pierce: true, laser: true});
   for (let i = 0; i < 25; i++) update(1/60);
-  res.laserSingleHitPerEnemy = v.hp === 1;
+  res.laserSingleHitPerEnemy = v.hp === 3;
   // E: body contact costs a life
   enemies = []; shots = []; player.alive = true; player.respawn = 0; player.invuln = 0; player.shield = 0;
   player.x = 150; player.y = 120; const l1 = lives;
@@ -3073,10 +3076,10 @@ window.__test = () => {
   spawnGate(); const gt = enemies[0]; gt.x = 250; gt.y = 135; gt.up = ()=>{};
   spawnDrone(60, 0);  const d1 = enemies[1]; d1.x = 320; d1.y = 60;  d1.up = ()=>{};
   spawnDrone(135, 0); const d2 = enemies[2]; d2.x = 320; d2.y = 135; d2.up = ()=>{};
-  shots.push({x: 190, y: 60,  vx: 300, vy: 0, w: 9, h: 3, dmg: 1});
-  shots.push({x: 190, y: 135, vx: 300, vy: 0, w: 9, h: 3, dmg: 1});
+  shots.push({x: 190, y: 60,  vx: 300, vy: 0, w: 9, h: 3, dmg: 2});
+  shots.push({x: 190, y: 135, vx: 300, vy: 0, w: 9, h: 3, dmg: 2});
   for (let i = 0; i < 40; i++) update(1/60);
-  res.gateBlocksShots = d1.hp === 1;
+  res.gateBlocksShots = d1.hp === 2;
   res.gapAllowsShots = d2.hp <= 0;
   // H: firewall fries an enemy flying through it
   enemies = []; shots = [];
