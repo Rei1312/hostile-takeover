@@ -14,7 +14,7 @@
   #title { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:12px; text-align:center; color:#B8C4D9; z-index:5;
     font-family:"Courier New", ui-monospace, monospace; padding:16px;
-    background:radial-gradient(ellipse at center, rgba(10,16,34,.35), rgba(5,7,15,.92)); }
+    background:radial-gradient(ellipse at center, rgba(8,12,26,.72), rgba(4,6,12,.97)); }
   #title h1 { margin:0; color:#5DF2E6; font-size:clamp(26px, 7vw, 54px); letter-spacing:.14em;
     text-shadow:0 0 12px rgba(93,242,230,.7), 3px 3px 0 #123; font-weight:bold; }
   #title .sub { color:#FF4F8B; letter-spacing:.3em; font-size:clamp(10px,2.4vw,14px);
@@ -41,19 +41,9 @@
 <div id="title">
   <div class="sub">A GRADIUS-STYLE MISSION</div>
   <h1>HOSTILE&nbsp;TAKEOVER</h1>
-  <div class="sub" style="color:#8FA0BF; letter-spacing:.2em;">SECTOR 1 · THE CORPORATE BELT</div>
-  <div class="roster">
-    KNOWN HOSTILES:<br>
-    <b>JUNIOR ANALYSTS</b> — Saudi Arabia PIF · <b>VPs OF MONETIZATION</b> — Microhard<br>
-    <b>CHIEF LEGAL OFFICERS</b> — Electronic Hearts · <b>HR TURRETS</b> · <b>SPONSORED DRONES</b><br>
-    <b>THE MIDDLE MANAGER</b> · <b>THE CFO</b> — Chief Financial Overlord<br>
-    <b>THE SHAREHOLDER</b> — CEO of Everything
-  </div>
+  <div class="sub" style="color:#8FA0BF; letter-spacing:.2em;">TOMOE-SAN VS THE GAMES INDUSTRY</div>
   <div class="how">
-    YOU ARE <b style="color:#5DF2E6">TOMOE-SAN</b>, PILOT OF THE STARFIGHTER <b style="color:#5DF2E6">CUSTOMER-1</b><br>
-    DRAG ANYWHERE TO FLY · YOUR SHIP FIRES AUTOMATICALLY<br>
-    GRAB <span style="color:#FFC24B">■</span> CAPSULES · TAP THE POWER BAR (OR A SECOND FINGER) TO UPGRADE<br>
-    <span style="color:#4E5C78">DISCREET ⏸ PAUSE &amp; ♪ MUTE BUTTONS SIT IN THE TOP-RIGHT CORNER · P KEY ALSO PAUSES</span>
+    DRAG TO FLY · AUTO-FIRE · GRAB <span style="color:#FFC24B">■</span> CAPSULES · TAP THE POWER BAR TO UPGRADE
   </div>
   <div class="start" id="startBtn">TAP TO LAUNCH</div>
   <div class="cred">A REY@NIU PRODUCTION · JULY 2026 · 100% FUN, 0% BATTLE PASS</div>
@@ -332,6 +322,52 @@ const algoHit = sprite(ALGO_MAP, {A:WHT,o:WHT,B:WHT,v:WHT,E:WHT,u:WHT,M:WHT,f:WH
 const palSys = {H:'#1B4A44', F:FACE, e:EYE, W:SHIRT, S:'#153A4A', s:'#0F2C38', T:GRN};
 const sysSprs = [sprite(EXEC_BASE, palSys, 3), sprite(variant(EXEC_BASE, {11:LEGS_B}), palSys, 3)];
 
+// --- sector 3 sprites ---
+const LOOT_MAP = [
+  ".gggggggg.",
+  "gGGGGGGGGg",
+  "gGAqqAGGGg",
+  "gGAqqAGGGg",
+  "gggggggggg",
+  "gGGGgGGGGg",
+  "gGGGgGGGGg",
+  ".gggggggg.",
+];
+const lootSpr = sprite(LOOT_MAP, {g:'#7A5210', G:'#B4831E', A:'#5A3A0A', q:WHT}, 2);
+const WHALET_MAP = [
+  "..WWWWWWWWW.....",
+  ".WWeWWWWWWWWWt..",
+  "WWWWWWWWWWWWWttt",
+  "WBBBWWWWWWWWWtt.",
+  ".WWWWWWWWWWWW...",
+  "...bbbbbbbb.....",
+];
+const whaletSprs = [sprite(WHALET_MAP, {W:'#3E5E80', e:WHT, B:'#16283A', t:'#2E4862', b:'#7E98B4'}, 2),
+                    sprite(variant(WHALET_MAP, {5:"..bbbbbbbb......"}), {W:'#3E5E80', e:WHT, B:'#16283A', t:'#2E4862', b:'#7E98B4'}, 2)];
+const palPit = {H:'#1E1A16', F:FACE, e:EYE, W:SHIRT, S:'#5A1420', s:'#420E18', T:AMB};
+const pitSprs = [sprite(EXEC_BASE, palPit, 3), sprite(variant(EXEC_BASE, {11:LEGS_B}), palPit, 3)];
+// boss: THE WHALE HARVESTER (26x14, 4x = 104x56), top hat & monocle included
+const WHALE_MAP = [
+  "..hhhhh...................",
+  "..hhhhh...................",
+  ".hhhhhhh..................",
+  "..WWWWWWWWWWWWWW..........",
+  ".WWWWWWWWWWWWWWWWWW.......",
+  "WWmeWWWWWWWWWWWWWWWWW.....",
+  "WWWWWWWWWWWWWWWWWWWWWWtt..",
+  "WBBBBBWWWWWWWWWWWWWWttttt.",
+  "WBBBBBWWWWWWWWWWWWWWWttt..",
+  "WWWWWWWWWWWWWWWWWWWWWW....",
+  ".WWWWWWWWWWWWWWWWWWWW.....",
+  "..bbbbbbbbbbbbbbbbb.......",
+  "....bbbbbbbbbbbb..........",
+  "......bbbbbb..............",
+];
+const whalePal  = {h:'#1A1410', W:'#3E5E80', m:AMB, e:WHT, B:'#16283A', t:'#2E4862', b:'#7E98B4'};
+const whaleFPal = {h:'#1A1410', W:'#5E2E48', m:AMB, e:'#FF6060', B:'#2A0E1E', t:'#48203A', b:'#A87E98'};
+const whaleN = [sprite(WHALE_MAP, whalePal, 4), sprite(variant(WHALE_MAP, {7:"WBBBBBWWWWWWWWWWWWWWttttt.", 8:"WBBBBBWWWWWWWWWWWWWWWttt.."}), whalePal, 4)];
+const whaleF = [sprite(WHALE_MAP, whaleFPal, 4), sprite(WHALE_MAP, whaleFPal, 4)];
+const whaleHit = sprite(WHALE_MAP, {h:WHT, W:WHT, m:WHT, e:WHT, B:WHT, t:WHT, b:WHT}, 4);
 // --- capsule ---
 const CAP_MAP = [
   "..AAAAAA..",".AAWWAAAa.","AAWWAAAAaA","AAWAAAAAaA","AAAAAAAAaA",".AAAAAAAa.","..aaaaaa..",
@@ -384,8 +420,11 @@ function audioInit(){
   if (AC){ if (AC.state === 'suspended') AC.resume(); return; }
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return; }
   master = AC.createGain(); master.gain.value = .55;
+  const comp = AC.createDynamicsCompressor();           // glue the orchestra + sfx mix
+  comp.threshold.value = -18; comp.knee.value = 24; comp.ratio.value = 4;
+  comp.attack.value = .004; comp.release.value = .18;
   const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 9500;
-  master.connect(lp); lp.connect(AC.destination);
+  master.connect(comp); comp.connect(lp); lp.connect(AC.destination);
   echo = AC.createDelay(1); echo.delayTime.value = .26;
   const fb = AC.createGain(); fb.gain.value = .3; echo.connect(fb); fb.connect(echo);
   const wet = AC.createGain(); wet.gain.value = .5; echo.connect(wet); wet.connect(master);
@@ -403,7 +442,7 @@ function route(g, send){
   g.connect(master);
   if (send && echo){ const sg = AC.createGain(); sg.gain.value = send; g.connect(sg); sg.connect(echo); }
 }
-function osc(type, f0, t0, dur, vol, f1, send, vib, atk, cutoff){
+function osc(type, f0, t0, dur, vol, f1, send, vib, atk, cutoff, pan){
   if (!AC || muted) return;
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t0);
@@ -421,7 +460,12 @@ function osc(type, f0, t0, dur, vol, f1, send, vib, atk, cutoff){
     fl.frequency.value = cutoff; fl.Q.value = .7;
     o.connect(fl); fl.connect(g);
   } else o.connect(g);
-  route(g, send);
+  let out = g;
+  if (pan && AC.createStereoPanner){                   // stereo placement (harps L/R etc.)
+    const pn = AC.createStereoPanner(); pn.pan.value = pan;
+    g.connect(pn); out = pn;
+  }
+  route(out, send);
   o.start(t0); o.stop(t0 + dur + .03);
 }
 function nz(t0, dur, vol, fc0, fc1, send){
@@ -484,6 +528,8 @@ const CHD = {
   X2:{c:[68,71,74], b:[44,44,56,44,44,44,56,46], a:[68,71,74,77]},
   X3:{c:[70,73,76], b:[46,46,58,46,46,46,58,45], a:[70,73,76,79]},
   X4:{c:[69,72,75], b:[45,45,45,45,52,52,45,45], a:[69,72,75,72]},
+  Bb:{c:[58,62,65], b:[46,46,58,46,46,58,46,58], a:[58,62,65,62]},
+  Ff:{c:[53,57,60], b:[41,41,53,41,41,53,41,53], a:[53,57,60,57]},
 };
 function song(spb, rows){
   const S = {spb, bass: [], lead: [], arp: [], chords: []};
@@ -519,8 +565,14 @@ const bD  = [['X1',[69,72,75,78,81,78,75,72]], ['X3',[82,_,81,_,78,_,75,78]], ['
 // upbeat heroic fanfare for the opening crawl (C major, 144 bpm)
 const cA = [['C',[72,76,79,84,_,79,76,79]], ['F',[81,_,79,77,81,_,84,81]], ['G',[79,_,74,71,74,79,83,79]], ['C',[84,_,79,_,76,_,72,_]]];
 const cB = [['Am',[76,_,72,76,81,_,76,72]], ['F',[77,81,84,_,81,77,72,77]], ['G',[74,79,83,_,86,83,79,74]], ['C',[84,_,88,_,84,79,76,72]]];
+// sector 3: bright casino swagger in F (152 bpm)
+const lA = [['Ff',[77,_,81,_,84,81,77,72]], ['Bb',[74,77,82,_,79,77,74,_]], ['C',[76,_,79,76,84,_,79,76]], ['Ff',[81,_,77,_,72,_,77,81]]];
+const lB = [['Dm',[74,_,77,74,86,_,84,81]], ['Bb',[82,_,84,82,79,_,77,74]], ['C',[76,79,84,_,83,84,88,_]], ['Ff',[89,_,84,81,77,_,81,84]]];
+const lC = [['Ff',[_,_,77,_,_,_,72,_]], ['Bb',[_,_,74,_,_,_,70,_]], ['C',[_,_,76,_,79,_,_,_]], ['Ff',[77,76,77,79,81,_,84,_]]];
+const lD = [['Bb',[86,_,82,79,82,_,86,_]], ['Ff',[84,_,81,77,81,_,84,_]], ['Dm',[86,_,84,82,84,86,89,_]], ['C',[88,86,84,83,79,_,83,88]]];
 const SONGS = {
   crawl: song(60/144/4, [].concat(cA, cB)),
+  loot: song(60/152/4, [].concat(lC, lA, lB, lA, lD, lC, lB, lA, lD, lB)),
   // ~64s: intro, theme, B-section, variation, bridge, breakdown, reprises, climax, coda
   main: song(60/150/4, [].concat(mIN, mA, mB, mA2, mCs, mD, mB, mE, mA, mCo)),
   // ~60s: Em drive with dark low verse, lift section, breakdown and climax
@@ -552,7 +604,8 @@ function musicTick(){
       }
     }
     const a = S.arp[s16 % S.arp.length];
-    if (a) osc('triangle', mtof(a), t, .16, .026, 0, .3, false, .004);     // harp arpeggio
+    if (a) osc('triangle', mtof(a), t, .16, .028, 0, .3, false, .004, 0,
+               (s16 % 4 < 2 ? -.35 : .35));                                // harp, panned L/R
     if (s16 % 2 === 0){
       const i8 = s16 / 2;
       const b = S.bass[i8 % S.bass.length];
@@ -560,9 +613,10 @@ function musicTick(){
               osc('sawtooth', mtof(b), t, S.spb*1.9, .015, 0, 0, false, .01, 700); }  // cello bow
       const l = S.lead[i8 % S.lead.length];
       if (l){                                                              // brass section
-        osc('sawtooth', mtof(l),       t, S.spb*1.9, .024, 0, .32, true,  .03,  3200);
-        osc('sawtooth', mtof(l)*1.004, t, S.spb*1.9, .016, 0, .32, false, .035, 2800);
-        osc('square',   mtof(l)/2,     t, S.spb*1.9, .011, 0, .25, false, .03,  1800);  // horn 8vb
+        const acc = (beat === 0 || beat === 8) ? 1.3 : 1;                  // downbeat accents
+        osc('sawtooth', mtof(l),       t, S.spb*1.9, .024*acc, 0, .32, true,  .03,  3200);
+        osc('sawtooth', mtof(l)*1.004, t, S.spb*1.9, .016*acc, 0, .32, false, .035, 2800);
+        osc('square',   mtof(l)/2,     t, S.spb*1.9, .011*acc, 0, .25, false, .03,  1800);  // horn 8vb
       }
     }
     mStep++; musicNext += S.spb;
@@ -581,7 +635,7 @@ try { cleared = JSON.parse(localStorage.getItem('ht-cleared') || '{}'); } catch(
 const LEVELS = [
   {n:1, name:'THE CORPORATE BELT',  boss:'THE SHAREHOLDER',         open:true},
   {n:2, name:'DATA CENTER DELTA',   boss:'THE ALGORITHM',           open:true},
-  {n:3, name:'LOOT BOX LAGOON',     boss:'THE WHALE HARVESTER',     open:false},
+  {n:3, name:'LOOT BOX LAGOON',     boss:'THE WHALE HARVESTER',     open:true},
   {n:4, name:'LIVE SERVICE LIMBO',  boss:'THE SEASON PASS SERPENT', open:false},
   {n:5, name:'METAVERSE CITADEL',   boss:'THE BOARD',               open:false},
 ];
@@ -603,16 +657,16 @@ function reset(){
   };
   spawned.length = 0;
   const ml = location.search.match(/[?&]l=(\d)/);
-  if (ml) level = Math.min(2, Math.max(1, +ml[1]));
-  TIMELINE = level === 2 ? TL2 : TL1;
-  DIFF = level === 2 ? 1.15 : 1;
+  if (ml) level = Math.min(3, Math.max(1, +ml[1]));
+  TIMELINE = level === 3 ? TL3 : level === 2 ? TL2 : TL1;
+  DIFF = level === 3 ? 1.3 : level === 2 ? 1.15 : 1;
   const m = location.search.match(/[?&]t=(\d+)/);
-  const jump = m ? +m[1] : (location.search.indexOf('boss') >= 0 ? (level === 2 ? 196 : 244) : 0);
+  const jump = m ? +m[1] : (location.search.indexOf('boss') >= 0 ? (level === 3 ? 200 : level === 2 ? 196 : 244) : 0);
   if (jump){
     levelT = jump;
     for (const tl of TIMELINE) if (tl[0] < jump) spawned.push(tl);
   }
-  setSong(level === 2 ? 'data' : 'main');
+  setSong(level === 3 ? 'loot' : level === 2 ? 'data' : 'main');
   banner('SECTOR 1 · THE CORPORATE BELT', 2.6);
 }
 
@@ -869,6 +923,81 @@ const floorCv2 = document.createElement('canvas'); floorCv2.width = 48; floorCv2
   for (let x = 2; x < 48; x += 8) g.fillRect(x, 2, 4, 2);
   g.fillStyle = 'rgba(76,224,122,.5)'; g.fillRect(24, 2, 2, 2);
 }
+// ---------- sector 3 background (loot box lagoon casino strip) ----------
+const SKY3 = ['#08030F','#0C0416','#10051E','#150627','#1A0830','#200A3A','#1B0833','#15062A','#0F0420','#0A0316'];
+const skyCv3 = document.createElement('canvas'); skyCv3.width = W; skyCv3.height = GROUND;
+{
+  const g = skyCv3.getContext('2d');
+  const bh = Math.ceil(GROUND / SKY3.length);
+  for (let i = 0; i < SKY3.length; i++){
+    g.fillStyle = SKY3[i]; g.fillRect(0, i*bh, W, bh+1);
+    if (i > 0){
+      g.fillStyle = SKY3[i-1];
+      for (let x = 0; x < W; x += 2){ g.fillRect(x + (i%2), i*bh, 1, 1); g.fillRect(x + ((i+1)%2), i*bh+1, 1, 1); }
+    }
+  }
+  for (let i = 0; i < 50; i++){                          // violet-sky stars
+    g.fillStyle = 'rgba(200,160,255,' + (.2 + Math.random()*.3).toFixed(2) + ')';
+    g.fillRect((Math.random()*W)|0, (Math.random()*GROUND*.6)|0, 1, 1);
+  }
+}
+const farCv3 = document.createElement('canvas'); farCv3.width = FARW; farCv3.height = 64;
+{
+  const g = farCv3.getContext('2d');
+  let x = 0;
+  while (x < FARW - 10){
+    const w = 16 + Math.random()*26, h = 16 + Math.random()*36, top = 64 - h;
+    g.fillStyle = '#150A28'; g.fillRect(x, top, w, h);
+    g.fillStyle = ['#8A2E5E','#1E6E88','#8A6E1E'][(x/40|0) % 3];   // dim neon crowns
+    g.fillRect(x + 2, top, w - 4, 2);
+    if (Math.random() < .4){ g.fillRect(x + w/2 - 1, top - 6, 2, 6); }
+    x += w + 3 + Math.random()*8;
+  }
+  const fog = g.createLinearGradient(0, 24, 0, 64);
+  fog.addColorStop(0, 'rgba(20,8,38,0)'); fog.addColorStop(1, 'rgba(26,10,46,.8)');
+  g.fillStyle = fog; g.fillRect(0, 0, FARW, 64);
+}
+const midCv3 = document.createElement('canvas'); midCv3.width = MIDW; midCv3.height = 112;
+const marq3 = [];
+{
+  const g = midCv3.getContext('2d');
+  let x = 0, i = 0;
+  while (x < MIDW - 24){
+    const w = 30 + Math.random()*34, h = 40 + Math.random()*64, top = 112 - h;
+    g.fillStyle = '#1A0E2E'; g.fillRect(x, top, w, h);
+    g.fillStyle = '#241440'; g.fillRect(x, top, w, 2); g.fillRect(x, top, 2, h);
+    // glowing windows in casino colors
+    for (let c = 0; c < (w-8)/8; c++)
+      for (let wy = top + 8; wy < 106; wy += 9){
+        if (Math.random() > .6) continue;
+        g.fillStyle = ['rgba(255,79,139,.4)','rgba(93,242,230,.35)','rgba(255,194,75,.4)'][(c+wy)%3];
+        g.fillRect(x + 4 + c*8, wy, 3, 4);
+      }
+    if (h > 56){ marq3.push({x: x + 3, y: top + 4, w: w - 6, i}); }   // marquee chase strip
+    g.fillStyle = '#0C0618'; g.fillRect(x + (w/2|0) - 3, 106, 6, 6);  // entrance
+    x += w + 5 + Math.random()*12; i++;
+  }
+}
+const nearCv3 = document.createElement('canvas'); nearCv3.width = NEARW; nearCv3.height = 44;
+{
+  const g = nearCv3.getContext('2d');
+  g.fillStyle = '#0A0518';
+  let x = 0;
+  while (x < NEARW - 12){                                // pier posts + railing
+    g.fillRect(x, 20, 5, 24);
+    g.fillRect(x - 2, 18, 9, 3);
+    x += 34 + Math.random()*30;
+  }
+  g.fillRect(0, 16, NEARW, 2);
+}
+const floorCv3 = document.createElement('canvas'); floorCv3.width = 48; floorCv3.height = 6;
+{
+  const g = floorCv3.getContext('2d');
+  g.fillStyle = '#2A1A10'; g.fillRect(0, 0, 48, 6);      // boardwalk planks
+  g.fillStyle = '#3A2618'; g.fillRect(0, 0, 48, 1);
+  g.fillStyle = '#160D08'; g.fillRect(15, 0, 1, 6); g.fillRect(31, 0, 1, 6); g.fillRect(47, 0, 1, 6);
+  g.fillStyle = '#4A3220'; g.fillRect(4, 2, 2, 1); g.fillRect(22, 4, 2, 1); g.fillRect(38, 2, 2, 1);
+}
 let towerScroll = 0, farScroll = 0, nearScroll = 0, nebScroll = 0, fgScroll = 0, planetX = 350;
 const shoots = [], traffic = [];
 function scrollBG(dt, k){
@@ -882,7 +1011,8 @@ function scrollBG(dt, k){
   blimpX     -= 3.5*dt*k; if (blimpX < -100) blimpX = W + 30;
   for (const s of stars){ s.x -= s.z*dt*k; if (s.x < -2){ s.x = W+2; s.y = Math.random()*GROUND; } }
   if (Math.random() < dt*.3){
-    if (level === 2) shoots.push({x: Math.random()*W, y: -4, vx: -40, vy: 200, t: .9});
+    if (level === 3) shoots.push({x: 30+Math.random()*(W-60), y: GROUND-10, vx: -18, vy: -26-Math.random()*18, t: 2.2});  // bubbles
+    else if (level === 2) shoots.push({x: Math.random()*W, y: -4, vx: -40, vy: 200, t: .9});
     else shoots.push({x: 60+Math.random()*W*.8, y: 10+Math.random()*70, vx: -220, vy: 70, t: .55});
   }
   for (const sh of shoots){ sh.x += sh.vx*dt; sh.y += sh.vy*dt; sh.t -= dt; }
@@ -1135,6 +1265,55 @@ function spawnSweep(gap){                               // Algorithm: paywall wi
   enemies.push({kind:'gate', x: W-90, y: H/2, hp: Infinity, t: 0, r: 0, gap: gap || 34, score: 0, noHit: true,
     up(e, dt){ e.t += dt; e.x -= 70*dt; e.y = H/2 + Math.sin(e.t*1.6)*55; }});
 }
+// ---------- sector 3 enemies ----------
+function spawnLoot(x0){                                 // falling loot box: shooting it is a gamble
+  enemies.push({kind:'loot', x: x0 || (W-80 - Math.random()*240), y: -12, hp: 2, t: Math.random()*7,
+    drop: false, score: 100, r: 9, ry: 8,
+    up(e, dt){ e.t += dt; e.y += 44*dt; e.x -= 12*dt; if (e.y > GROUND-8) e.gone = true; }});
+}
+function spawnWhalet(y0, drop){                         // premium whale calf
+  enemies.push({kind:'whalet', x: W+20, y: y0, hp: 8, t: 0, fire: 1.6, drop: !!drop, score: 600, r: 14, ry: 7,
+    up(e, dt){
+      e.t += dt; e.x -= 40*dt; e.y = e.y0 + Math.sin(e.t*1.4)*34;
+      e.fire -= dt;
+      if (e.fire <= 0 && e.x < W-40 && player.alive){
+        e.fire = 2.1 * (1.9 - heat*.9);
+        for (let k = -1; k <= 1; k++)
+          ebullets.push({x: e.x-14, y: e.y, vx: -85*DIFF, vy: k*30*DIFF, coin: true, r: 3, t: 0});
+        sfx.coin();
+      }
+    }, y0: y0});
+}
+function spawnPitBoss(){
+  banner('⚠ THE PIT BOSS · THE HOUSE ALWAYS WINS ⚠', 3);
+  sfx.warn();
+  enemies.push({kind:'midboss', name:'pit', x: W+40, y: H/2, y0: H/2, hp: 70, maxhp: 70, t: 0,
+    fire: 1.6, sum: 4, drop: true, score: 1500, r: 16, ry: 17,
+    up(e, dt){
+      e.t += dt;
+      if (e.x > W-76) e.x -= 50*dt;
+      else {
+        e.y = e.y0 + Math.sin(e.t*1.25)*58;
+        e.fire -= dt;
+        if (e.fire <= 0 && player.alive){
+          e.fire = 1.5 * (1.9 - heat*.9);
+          const a0 = Math.atan2(player.y-e.y, player.x-e.x);
+          for (let k = -1; k <= 1; k++)
+            ebullets.push({x: e.x-14, y: e.y, vx: Math.cos(a0+k*.3)*100*DIFF, vy: Math.sin(a0+k*.3)*100*DIFF, coin: true, r: 3, t: 0});
+          sfx.coin();
+        }
+        e.sum -= dt;
+        if (e.sum <= 0){ e.sum = 5.5; spawnLoot(); spawnLoot(); }
+      }
+    }});
+}
+function spawnBoss3(){
+  boss = { type:'whale', hw: 50, hh: 30,
+           x: W+130, y: -70, hp: 280, maxhp: 280, t: 0, flash: 0, atk: 2.2, entered: false,
+           beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0, breach: null };
+  banner('⚠ THE WHALE HARVESTER ⚠', 3);
+  setSong('boss');
+}
 // ---------- final bosses ----------
 function spawnBoss(){
   boss = { type:'share', hw: BOSS_HW, hh: BOSS_HH,
@@ -1213,14 +1392,43 @@ function bossAttack(b, kind){
     banner('PORT TRACE!', .9);
     b.vbeam = {x: player.x, t: -.65};
     sfx.beamCharge();
+  } else if (kind === 'harpoon'){                        // WHALE: aimed harpoon volley
+    banner('HARPOON VOLLEY!', .9);
+    const ah = Math.atan2(player.y-b.y, player.x-b.x);
+    for (let k = -1; k <= 1; k++)
+      ebullets.push({x: b.x-44, y: b.y, vx: Math.cos(ah+k*.18)*130*DIFF, vy: Math.sin(ah+k*.18)*130*DIFF, coin: false, r: 4, t: 0});
+    sfx.beamFire();
+  } else if (kind === 'bubbles'){                        // WHALE: wavy bubble curtain
+    for (let i = 0; i < 7; i++)
+      ebullets.push({x: b.x-46, y: b.y + (i-3)*7, vx: -75*DIFF, vy: 0, bit: true, wavePh: i*.9, r: 3, t: 0});
+    sfx.whoosh();
+  } else if (kind === 'lootrain'){                       // WHALE: bait the gambler
+    banner('LOOT DROP!', .9);
+    spawnLoot(); spawnLoot(); if (b.phase >= 2) spawnLoot();
+  } else if (kind === 'breach'){                         // WHALE: dives, then erupts under you
+    banner('BREACH!', 1.1);
+    b.breach = {t: -.9, x: player.x};
+    sfx.beamCharge();
   }
   const pace = (1.45 - heat*.45) * (b.phase >= 3 ? .8 : 1);   // dynamic difficulty + desperation
-  const slow = {sweep: 4.4, lunge: 2.8, vortex: 2.4, legal: 3.2, trace: 2.2};
+  const slow = {sweep: 4.4, lunge: 2.8, vortex: 2.4, legal: 3.2, trace: 2.2,
+                harpoon: 2.2, bubbles: 2, lootrain: 2.6, breach: 3.6};
   if (b.type === 'algo') b.atk = (slow[kind] || (b.phase >= 2 ? 1.6 : 2.3)) * pace;
   else b.atk = (slow[kind] || (b.phase >= 2 ? 1.4 : 2)) * pace;
 }
 function pickBossAttack(b){
   const r = Math.random();
+  if (b.type === 'whale'){
+    if (b.phase >= 2){
+      if (r < (b.phase >= 3 ? .32 : .24)) return 'breach';
+      if (r < .55) return 'harpoon';
+      if (r < .78) return 'bubbles';
+      return 'lootrain';
+    }
+    if (r < .38) return 'harpoon';
+    if (r < .72) return 'bubbles';
+    return 'lootrain';
+  }
   if (b.type === 'algo'){
     if (b.phase >= 3){
       if (r < .28) return 'trace';
@@ -1339,6 +1547,28 @@ const TL2 = [
   [176, () => { spawnCrawler(); spawnCrawler(true); setTimeout(()=>state==='play'&&spawnMeeting(H/2), 800); }],
   [190, () => { spawnFan(-1); setTimeout(()=>state==='play'&&spawnFan(1), 1500); }],
 ];
+const TL3 = [
+  [2,   () => banner('SECTOR 3 · LOOT BOX LAGOON', 2.6)],
+  [4,   () => { banner('LOOT BOXES · SHOOT RESPONSIBLY'); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*600); }],
+  [12,  () => { for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnDrone(60+i*24, i*.3, i===4), i*320); spawnVP(H/2, true); }],
+  [21,  () => { banner('PREMIUM WHALES SURFACING'); spawnWhalet(80, true); spawnWhalet(GROUND-80); }],
+  [31,  () => { spawnPopup(); spawnPopup(); for (let i=0;i<3;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*700); }],
+  [41,  () => { spawnRing(H/2-20); spawnLawyer(GROUND-60, true); }],
+  [51,  () => { spawnWhalet(H/2, true); banner('LOOT DROP'); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*500); }],
+  [61,  () => { for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnInfluencer(40+(i%3)*70, i===4), i*480); spawnMeeting(H/2-10); }],
+  [72,  () => { spawnTurret(true); for (let i=0;i<4;i++) setTimeout(()=>state==='play'&&spawnDrone(H/2, i*.4), i*350); spawnLoot(); spawnLoot(); }],
+  [81,  () => { banner('BOT BETTORS SWARM'); spawnSwarm(70); setTimeout(()=>state==='play'&&spawnSwarm(GROUND-90), 1100); }],
+  [90,  spawnPitBoss],
+  [115, () => { spawnSwarm(H/2); for (let i=0;i<3;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*600); spawnVP(70, true); }],
+  [125, () => { spawnWhalet(70, true); spawnWhalet(GROUND-80); spawnVP(GROUND-50); }],
+  [135, () => { spawnRing(70); setTimeout(()=>state==='play'&&spawnRing(GROUND-80), 1300); for (let i=0;i<3;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*500); }],
+  [147, () => { spawnLawyer(60, true); spawnLawyer(GROUND-60); spawnPopup(); spawnMeeting(H/2); }],
+  [160, () => { banner('A WHOLE POD OF WHALES'); spawnWhalet(60, true); spawnWhalet(H/2); spawnWhalet(GROUND-70, true); }],
+  [175, () => { banner('HIGH ROLLER HOUR'); spawnVP(60, true); spawnVP(GROUND-60); spawnTurret(); for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnLoot(), i*400); }],
+  [190, () => { spawnCrawler(); spawnCrawler(); for (let i=0;i<5;i++) setTimeout(()=>state==='play'&&spawnDrone(40+(i%3)*60, i*.3), i*300); }],
+  [201, () => { banner('WARNING: APEX PREDATOR OF MONETIZATION', 3.2); sfx.warn(); }],
+  [205, () => spawnBoss3()],
+];
 let TIMELINE = TL1;
 const spawned = [];
 
@@ -1449,6 +1679,19 @@ function killEnemy(e){
     if (e.drop) caps.push({x: e.x, y: e.y, t: 0});
     return;
   }
+  if (e.kind === 'loot'){                               // gacha: capsule or a face full of coins
+    burst(e.x, e.y, AMB, 12); ring(e.x, e.y, 14); sfx.cap();
+    if (Math.random() < .35){ caps.push({x: e.x, y: e.y, t: 0}); pop(e.x, e.y-14, 'JACKPOT!'); }
+    else {
+      pop(e.x, e.y-14, 'GACHA!');
+      for (let k = 0; k < 6; k++){
+        const a5 = k*1.047 + Math.random()*.3;
+        ebullets.push({x: e.x, y: e.y, vx: Math.cos(a5)*70*DIFF, vy: Math.sin(a5)*70*DIFF, coin: true, r: 3, t: 0});
+      }
+      sfx.coin();
+    }
+    return;
+  }
   if (e.kind === 'rack'){
     burst(e.x, e.y, GRN, 8); burst(e.x, e.y, '#39435C', 6); ring(e.x, e.y, 12);
     sfx.rack();
@@ -1479,12 +1722,13 @@ function update(dt){
     if (ambT <= 0 && enemies.length < 14){              // cap on-screen chaos
       ambT = (3.2 + Math.random()*3) / heat;
       const r = Math.random();
-      if (r < .34) spawnDrone(30 + Math.random()*(GROUND-80), 0, Math.random() < .18);
-      else if (r < .5) spawnInfluencer(40 + Math.random()*140, false);
-      else if (r < .64) spawnRack(40 + Math.random()*(GROUND-100), Math.random() < .3);
-      else if (r < .76) spawnCrawler(level === 2 && Math.random() < .5);
-      else if (r < .88) spawnPopup();
+      if (r < .32) spawnDrone(30 + Math.random()*(GROUND-80), 0, Math.random() < .18);
+      else if (r < .46) spawnInfluencer(40 + Math.random()*140, false);
+      else if (r < .6){ if (level === 3) spawnLoot(); else spawnRack(40 + Math.random()*(GROUND-100), Math.random() < .3); }
+      else if (r < .72) spawnCrawler(level === 2 && Math.random() < .5);
+      else if (r < .86) spawnPopup();
       else if (level === 1) spawnChute(260 + Math.random()*180);
+      else if (level === 3) spawnWhalet(60 + Math.random()*(GROUND-140), false);
       else spawnSwarm(50 + Math.random()*(GROUND-120));
       if (Math.random() < .3) spawnDrone(30 + Math.random()*(GROUND-80), 0, false);  // extra pressure
     }
@@ -1654,6 +1898,24 @@ function update(dt){
           b.tp = {t: .25};
           b.tpT = b.phase >= 3 ? 1.2 : b.phase === 2 ? 1.7 : 2.6;
         }
+      } else if (b.breach){                              // whale: dive under, erupt at your column
+        const B2 = b.breach; B2.t += dt;
+        if (B2.t < 0) shake = Math.max(shake, .06);
+        else {
+          const k = Math.min(1, B2.t / 1.4);
+          if (k < .3) b.y += ((GROUND+130) - b.y) * Math.min(1, dt*5);
+          else if (k < .4) b.x = B2.x;
+          else if (k < .75) b.y += (52 - b.y) * Math.min(1, dt*6);
+          else {
+            b.x += ((W-78) - b.x) * Math.min(1, dt*3);
+            b.y += ((H/2-10) - b.y) * Math.min(1, dt*3);
+          }
+          if (k >= 1) b.breach = null;
+        }
+      } else if (b.type === 'whale'){
+        b.y = H/2 - 10 + Math.sin(b.t*.6) * 66;          // slow deep swells
+        if (b.phase >= 2 && p.alive)                     // whale song: the current pulls you in
+          p.x = Math.min(W-40, p.x + 22*dt);
       } else if (b.lunge){                               // buyout lunge: dash across and back
         const L = b.lunge; L.t += dt;
         if (L.t < 0) shake = Math.max(shake, .08);       // wind-up rumble
@@ -1668,12 +1930,12 @@ function update(dt){
       // phase 2 trigger: MARGIN CALL
       if (b.phase === 1 && b.hp <= b.maxhp*.6){
         b.phase = 2; b.flash = .2; b.tele = 0; b.beam = null;
-        banner(b.type === 'algo' ? '⚠ OVERCLOCK ENGAGED! ⚠' : '⚠ MARGIN CALL! ⚠', 2.2);
+        banner(b.type === 'whale' ? '⚠ WHALE SONG — THE CURRENT PULLS! ⚠' : b.type === 'algo' ? '⚠ OVERCLOCK ENGAGED! ⚠' : '⚠ MARGIN CALL! ⚠', 2.4);
         sfx.warn(); shake = .6;
         burst(b.x, b.y, b.type === 'algo' ? RED : '#FF2D6C', 26); ring(b.x, b.y, 40);
       } else if (b.phase === 2 && b.hp <= b.maxhp*.25){
         b.phase = 3; b.flash = .25; b.tele = 0;
-        banner(b.type === 'algo' ? '⚠ DDoS OVERDRIVE! ⚠' : '⚠ HOSTILE BUYOUT! ⚠', 2.4);
+        banner(b.type === 'whale' ? '⚠ DEEP DIVE! ⚠' : b.type === 'algo' ? '⚠ DDoS OVERDRIVE! ⚠' : '⚠ HOSTILE BUYOUT! ⚠', 2.4);
         sfx.warn(); shake = .8;
         burst(b.x, b.y, RED, 34); ring(b.x, b.y, 50); ring(b.x, b.y, 34);
       }
@@ -1702,7 +1964,8 @@ function update(dt){
         b.driz = (b.driz === undefined ? .5 : b.driz) - dt;
         if (b.driz <= 0){
           b.driz = b.type === 'algo' ? .45 : .6;
-          if (b.type === 'algo')
+          if (b.type === 'whale' && Math.random() < .3){ spawnLoot(); }
+          else if (b.type === 'algo')
             ebullets.push({x: 40+Math.random()*(W-140), y: -6, vx: 0, vy: (120+Math.random()*40)*DIFF, bit: true, r: 3, t: 0});
           else {
             const a3 = Math.random()*6.28;
@@ -1760,7 +2023,7 @@ function update(dt){
       missiles = missiles.filter(m => !m.dead);
       if (p.alive && Math.abs(b.x-p.x) < b.hw-2 && Math.abs(b.y-p.y) < b.hh-2) hitPlayer();
       if (b.hp <= 0){
-        b.hp = 0; b.dying = .0001; b.beam = null; b.vbeam = null; b.lunge = null; b.spiralN = 0;
+        b.hp = 0; b.dying = .0001; b.beam = null; b.vbeam = null; b.lunge = null; b.breach = null; b.spiralN = 0;
         ebullets = [];
         addScore(5000); pop(b.x, b.y - 46, '+5000');
         sfx.bigBoom();
@@ -1823,7 +2086,49 @@ function update(dt){
 }
 
 // ---------- render ----------
-function drawBG(){ level === 2 ? drawBG2() : drawBG1(); }
+function drawBG(){ level === 3 ? drawBG3() : level === 2 ? drawBG2() : drawBG1(); }
+function drawBG3(){
+  ctx.drawImage(skyCv3, 0, 0);
+  ctx.fillStyle = '#0A0616'; ctx.fillRect(0, GROUND, W, H-GROUND);
+  // rising bubbles
+  for (const sh of shoots){
+    ctx.globalAlpha = Math.min(.5, sh.t*.3);
+    ctx.strokeStyle = '#7FD8E8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sh.x, sh.y, 2 + (2.2-sh.t), 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // far casino skyline
+  let fx = -Math.floor(farScroll);
+  ctx.drawImage(farCv3, fx, GROUND-64); ctx.drawImage(farCv3, fx + FARW, GROUND-64);
+  // mid strip with marquee chase lights
+  let mxs = -Math.floor(towerScroll);
+  ctx.drawImage(midCv3, mxs, GROUND-112); ctx.drawImage(midCv3, mxs + MIDW, GROUND-112);
+  const chase = ['#FF4F8B','#5DF2E6','#FFC24B'];
+  for (const mq of marq3){
+    let qx = mq.x - towerScroll; if (qx < -80) qx += MIDW;
+    if (qx > W || qx < -mq.w) continue;
+    for (let d = 0; d < mq.w; d += 6){
+      ctx.fillStyle = chase[(((perfT*10)|0) + (d/6|0) + mq.i) % 3];
+      ctx.fillRect((qx+d)|0, GROUND-112+mq.y, 3, 2);
+    }
+  }
+  // lagoon water with neon shimmer
+  ctx.fillStyle = '#0E0B26'; ctx.fillRect(0, GROUND-16, W, 10);
+  for (let k = 0; k < 3; k++){
+    ctx.globalAlpha = .16;
+    ctx.fillStyle = k === 0 ? MAG : k === 1 ? CYAN : AMB;
+    for (let x = 0; x < W; x += 26){
+      const wob = Math.sin(perfT*1.4 + x*.08 + k*2)*4;
+      ctx.fillRect((x+wob)|0, GROUND-14+k*3, 12, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // pier posts
+  let nxs = -Math.floor(nearScroll);
+  ctx.drawImage(nearCv3, nxs, GROUND-44); ctx.drawImage(nearCv3, nxs + NEARW, GROUND-44);
+  // boardwalk
+  for (let x = -(Math.floor(fgScroll) % 48); x < W; x += 48) ctx.drawImage(floorCv3, x, GROUND-6);
+}
 function drawBG2(){
   ctx.drawImage(skyCv2, 0, 0);
   ctx.fillStyle = '#020A0E'; ctx.fillRect(0, GROUND, W, H-GROUND);
@@ -2009,9 +2314,9 @@ function drawHUD(){
     ctx.fillStyle = boss.phase >= 3 ? RED : boss.phase === 2 ? '#FF2D6C' : MAG;
     ctx.fillRect(91, 15, 298 * Math.max(0, boss.hp/boss.maxhp), 3);
     ctx.fillStyle = MAG; ctx.font = 'bold 7px monospace';
-    const bn = boss.type === 'algo' ? 'THE ALGORITHM' : 'THE SHAREHOLDER';
-    const tag = boss.phase >= 3 ? (boss.type === 'algo' ? ' · OVERDRIVE' : ' · BUYOUT MODE')
-              : boss.phase === 2 ? (boss.type === 'algo' ? ' · OVERCLOCKED' : ' · FURIOUS') : '';
+    const bn = boss.type === 'whale' ? 'THE WHALE HARVESTER' : boss.type === 'algo' ? 'THE ALGORITHM' : 'THE SHAREHOLDER';
+    const tag = boss.phase >= 3 ? (boss.type === 'whale' ? ' · DEEP DIVE' : boss.type === 'algo' ? ' · OVERDRIVE' : ' · BUYOUT MODE')
+              : boss.phase === 2 ? (boss.type === 'whale' ? ' · WHALE SONG' : boss.type === 'algo' ? ' · OVERCLOCKED' : ' · FURIOUS') : '';
     ctx.fillText(bn + tag, 90, 27);
   }
   const cw = W/6;
@@ -2108,14 +2413,25 @@ function drawIntro(){
     const a = Math.min(1, introT/.6) * Math.min(1, (6.5 - introT)/.5);
     ctx.globalAlpha = Math.max(0, Math.min(1, a));
     ctx.textAlign = 'center';
+    const brief = level === 3
+      ? ['SECTOR 3 · LOOT BOX LAGOON',
+         'THE WHALE HARVESTER TRAWLS FOR BIG SPENDERS.',
+         'EVERY LOOT BOX IS A GAMBLE, TOMOE-SAN.',
+         'BEACH THE BEAST. PUBLISH THE ODDS.',
+         '⚠ THE HOUSE ALWAYS FIRES FIRST ⚠']
+      : ['SECTOR 2 · DATA CENTER DELTA',
+         'THE ALGORITHM HOARDS THE INDUSTRY\'S SERVERS.',
+         'FIREWALLS BLOCK YOUR PATH, TOMOE-SAN.',
+         'CUT THE POWER. END THE UPTIME.',
+         '⚠ EXPECT HEAVIER RESISTANCE ⚠'];
     ctx.fillStyle = CYAN; ctx.font = 'bold 16px "Courier New", monospace';
-    ctx.fillText('SECTOR 2 · DATA CENTER DELTA', W/2, 92);
+    ctx.fillText(brief[0], W/2, 92);
     ctx.fillStyle = AMB; ctx.font = 'bold 10px monospace';
-    ctx.fillText('THE ALGORITHM HOARDS THE INDUSTRY\'S SERVERS.', W/2, 122);
-    ctx.fillText('FIREWALLS BLOCK YOUR PATH, TOMOE-SAN.', W/2, 138);
-    ctx.fillText('CUT THE POWER. END THE UPTIME.', W/2, 154);
+    ctx.fillText(brief[1], W/2, 122);
+    ctx.fillText(brief[2], W/2, 138);
+    ctx.fillText(brief[3], W/2, 154);
     ctx.fillStyle = RED; ctx.font = 'bold 11px monospace';
-    ctx.fillText('⚠ EXPECT HEAVIER RESISTANCE ⚠', W/2, 184);
+    ctx.fillText(brief[4], W/2, 184);
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
   } else if (introT < 2.2){
     const a = Math.min(1, introT/.5) * Math.min(1, (2.2 - introT)/.4);
@@ -2235,6 +2551,21 @@ function render(){
         ctx.save(); ctx.translate(e.x|0, e.y|0); ctx.scale(1, -1);
         ctx.drawImage(spr2, -10, -5); ctx.restore();
       } else flashDraw(e, spr2, (e.x-10)|0, (e.y-5)|0);
+    } else if (e.kind === 'loot'){
+      ctx.save(); ctx.translate(e.x|0, e.y|0); ctx.rotate(Math.sin(e.t*3)*.25);   // tumbling
+      ctx.drawImage(lootSpr, -10, -8);
+      ctx.restore();
+      ctx.globalAlpha = .25 + .2*Math.sin(e.t*7);        // enticing glow
+      ctx.strokeStyle = AMB; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(e.x, e.y, 12, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (e.kind === 'whalet'){
+      flashDraw(e, whaletSprs[fr], (e.x-16)|0, (e.y-6)|0);
+      if ((e.t % 1.8) < .3){                             // little spout
+        ctx.globalAlpha = .5; ctx.fillStyle = '#BFE8FF';
+        ctx.fillRect((e.x-6)|0, (e.y-11)|0, 2, 3);
+        ctx.globalAlpha = 1;
+      }
     } else if (e.kind === 'turretC'){
       ctx.save(); ctx.translate(e.x|0, e.y|0); ctx.scale(1, -1);
       ctx.drawImage(turretSpr, -14, -8);
@@ -2253,7 +2584,7 @@ function render(){
       ctx.fillRect((e.x-8)|0, (e.y-7)|0, fr ? 16 : 10, 1);
     } else if (e.kind === 'midboss'){
       const bob = Math.sin(e.t*3)*2;
-      flashDraw(e, (e.name === 'cfo' ? cfoSprs : e.name === 'sys' ? sysSprs : mgrSprs)[fr], (e.x-18)|0, (e.y-18+bob)|0);
+      flashDraw(e, (e.name === 'cfo' ? cfoSprs : e.name === 'sys' ? sysSprs : e.name === 'pit' ? pitSprs : mgrSprs)[fr], (e.x-18)|0, (e.y-18+bob)|0);
       const fl = (perfT*20|0) % 2;
       ctx.fillStyle = AMB; ctx.fillRect((e.x-3)|0, (e.y+18+bob)|0, 4+fl*2, 2);
       ctx.fillStyle = DK; ctx.fillRect((e.x-18)|0, (e.y-26+bob)|0, 36, 3);
@@ -2308,9 +2639,31 @@ function render(){
     }
     // body (sway + telegraph frame + phase palette + death strobing)
     const sway = Math.sin(b.t*1.5) * .03;
-    const sets = b.type === 'algo'
-      ? {n: algoN, f: algoF, hit: algoHit}
-      : {n: bossN, f: bossF, hit: bossHit};
+    const sets = b.type === 'whale' ? {n: whaleN, f: whaleF, hit: whaleHit}
+               : b.type === 'algo'  ? {n: algoN, f: algoF, hit: algoHit}
+               : {n: bossN, f: bossF, hit: bossHit};
+    // breach telegraph: ripples where it will erupt
+    if (b.type === 'whale' && b.breach && b.breach.t < 0){
+      const rp = 1 + b.breach.t;                        // 0..1 as it approaches
+      for (let k = 0; k < 3; k++){
+        ctx.globalAlpha = .5 - k*.14;
+        ctx.strokeStyle = k % 2 ? CYAN : AMB; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(b.breach.x, GROUND-8, 6 + k*7 + rp*10, 2 + k, 0, 0, 7);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // spout while surfaced
+    if (b.type === 'whale' && !b.breach && b.dying <= 0 && (b.t % 2.4) < .5){
+      const sp2 = (b.t % 2.4) / .5;
+      ctx.globalAlpha = .5 * (1 - sp2);
+      ctx.fillStyle = '#BFE8FF';
+      ctx.fillRect((b.x-6)|0, (b.y-b.hh-6-sp2*14)|0, 2, 4);
+      ctx.fillRect((b.x-2)|0, (b.y-b.hh-9-sp2*16)|0, 2, 5);
+      ctx.fillRect((b.x+2)|0, (b.y-b.hh-5-sp2*12)|0, 2, 4);
+      ctx.globalAlpha = 1;
+    }
     let img;
     if (b.flash > 0 || (b.dying > 0 && ((b.dying*10)|0) % 2 === 0)) img = sets.hit;
     else img = (b.phase >= 2 ? sets.f : sets.n)[b.tele > 0 ? 1 : 0];
@@ -2355,6 +2708,17 @@ function render(){
         ctx.fillStyle = WHT;
         ctx.fillRect((b.x-b.hw+4)|0, (b.y-b.hh+66+bob2)|0, 2, 2);
         ctx.fillRect((b.x+b.hw-8)|0, (b.y-b.hh+66+bob2)|0, 2, 2);
+      }
+    } else if (b.flash <= 0 && b.dying <= 0 && b.type === 'whale'){   // WHALE décor
+      if (((perfT*3)|0) % 3 === 0){                     // monocle glint
+        ctx.fillStyle = WHT;
+        ctx.fillRect((b.x-b.hw+8)|0, (b.y-b.hh+20+bob2)|0, 3, 3);
+      }
+      if (b.phase >= 2){                                // whale-song ripple aura
+        ctx.globalAlpha = .1 + .05*Math.sin(b.t*6);
+        ctx.strokeStyle = CYAN; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(b.x, b.y+bob2, 58 + Math.sin(b.t*3)*6, 0, 7); ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     } else if (b.flash <= 0 && b.dying <= 0){              // THE ALGORITHM décor
       const glow = b.phase >= 2 ? .8 : .4 + .35 * Math.sin(b.t*5);
@@ -2512,9 +2876,11 @@ function render(){
       ctx.fillStyle = CYAN; ctx.font = 'bold 20px "Courier New", monospace';
       ctx.fillText('HOSTILE TAKEOVER COMPLETE', W/2, 100);
       ctx.fillStyle = AMB; ctx.font = 'bold 10px monospace';
-      ctx.fillText(level === 2 ? 'THE ALGORITHM HAS BEEN DEPRECATED' : 'THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
+      ctx.fillText(level === 3 ? 'THE WHALE HARVESTER HAS BEEN BEACHED'
+                 : level === 2 ? 'THE ALGORITHM HAS BEEN DEPRECATED' : 'THE SHAREHOLDER HAS BEEN LIQUIDATED', W/2, 120);
       ctx.fillStyle = '#8FA0BF'; ctx.font = 'bold 9px monospace';
-      ctx.fillText(level === 2 ? 'SERVERS NOW RUN ACTUAL GAMES · NICE FLYING, TOMOE-SAN'
+      ctx.fillText(level === 3 ? 'GACHA ODDS: FINALLY PUBLISHED · NICE FLYING, TOMOE-SAN'
+                 : level === 2 ? 'SERVERS NOW RUN ACTUAL GAMES · NICE FLYING, TOMOE-SAN'
                                : 'ALL MICROTRANSACTIONS REFUNDED · NICE FLYING, TOMOE-SAN', W/2, 134);
     }
     ctx.fillStyle = HULL; ctx.font = 'bold 11px monospace';
