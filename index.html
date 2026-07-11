@@ -592,8 +592,7 @@ let heat = 1;                 // dynamic difficulty: 0.55 (struggling) .. 1.6 (d
 const POWERS = ['SPEED','MISSILE','DOUBLE','LASER','OPTION','SHIELD'];
 
 function reset(){
-  score = 0; lives = 4; levelT = 0; boss = null; shake = 0; endT = 0; ambT = 8; winT = 0; paused = false;
-  heat = 1;
+  score = 0; lives = 4; levelT = 0; boss = null; shake = 0; endT = 0; ambT = 8; winT = 0; paused = false; heat = 1;
   shots = []; missiles = []; ebullets = []; enemies = []; caps = [];
   parts = []; rings = []; pops = []; banners = [];
   player = {
@@ -1317,14 +1316,16 @@ function powerMaxed(idx){
   if (n === 'SHIELD') return p.lv.SHIELD >= 3 && p.shield >= SHIELD_CAP[3];
   return p.lv[n] >= 3;
 }
-// Gradius-style power-up voice: bright, clipped, robotic.
-// Prefers Apple's "Fred" (the most arcade-cabinet voice on iPhone/Mac).
+// Power-up announcer: natural, energetic arcade-host delivery.
+// Prefers characterful natural voices (Daniel/Alex/Samantha) over robotic ones.
 let gVoice = null;
 function pickVoice(){
   try {
     const vs = speechSynthesis.getVoices();
-    gVoice = vs.find(v => /fred/i.test(v.name)) ||
-             vs.find(v => /^en[-_]/i.test(v.lang) && /alex|daniel|male/i.test(v.name)) ||
+    gVoice = vs.find(v => /daniel/i.test(v.name) && /^en/i.test(v.lang)) ||
+             vs.find(v => /alex/i.test(v.name) && /^en/i.test(v.lang)) ||
+             vs.find(v => /samantha/i.test(v.name)) ||
+             vs.find(v => /^en[-_]/i.test(v.lang)) ||
              vs.find(v => /^en/i.test(v.lang)) || null;
   } catch(err){}
 }
@@ -1335,9 +1336,9 @@ if ('speechSynthesis' in window){
 function announce(text){
   try {
     if (muted || !('speechSynthesis' in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
+    const u = new SpeechSynthesisUtterance(text + '!');   // exclamation lifts the prosody
     if (gVoice) u.voice = gVoice;
-    u.rate = 1.2; u.pitch = 1; u.volume = 1;
+    u.rate = 1.12; u.pitch = 1.15; u.volume = 1;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } catch(err){}
 }
@@ -1379,8 +1380,8 @@ function fireFrom(x, y){
 }
 function playerDie(){
   const p = player;
-  p.alive = false; p.respawn = 1.6; p.shield = 0;
   heat = Math.max(.55, heat - .3);                      // ease off after a death
+  p.alive = false; p.respawn = 1.6; p.shield = 0;
   lives--; shake = .4;
   burst(p.x, p.y, CYAN, 22); burst(p.x, p.y, WHT, 10); ring(p.x, p.y, 30);
   sfx.bigBoom();
@@ -1399,8 +1400,8 @@ function hitPlayer(){
   playerDie();
 }
 function killEnemy(e){
-  addScore(e.score);
   heat = Math.min(1.6, heat + .008);                    // doing well -> the market fights back
+  addScore(e.score);
   if (!e.drop && heat < .85 && Math.random() < .12)     // struggling -> mercy capsule
     caps.push({x: e.x, y: e.y, t: 0});
   pop(e.x, e.y - 12, e.kind === 'popup' ? 'AD CLOSED +50' : '+' + e.score);
