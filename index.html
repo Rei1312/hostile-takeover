@@ -1138,21 +1138,21 @@ function spawnSweep(gap){                               // Algorithm: paywall wi
 // ---------- final bosses ----------
 function spawnBoss(){
   boss = { type:'share', hw: BOSS_HW, hh: BOSS_HH,
-           x: W+120, y: -70, hp: 240, maxhp: 240, t: 0, flash: 0, atk: 2.2, entered: false,
+           x: W+120, y: -70, hp: 300, maxhp: 300, t: 0, flash: 0, atk: 2.2, entered: false,
            beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0 };
   banner('⚠ THE SHAREHOLDER ⚠', 3);
   setSong('boss');
 }
 function spawnBoss2(){
   boss = { type:'algo', hw: 40, hh: 48,
-           x: W+120, y: -70, hp: 240, maxhp: 240, t: 0, flash: 0, atk: 2, entered: false,
+           x: W+120, y: -70, hp: 280, maxhp: 280, t: 0, flash: 0, atk: 2, entered: false,
            beam: null, phase: 1, dying: 0, tele: 0, next: null, spiralN: 0, spiralT: 0, spiralA: 0 };
   banner('⚠ THE ALGORITHM ⚠', 3);
   setSong('boss');
 }
 function bossAttack(b, kind){
   if (kind === 'fan'){
-    const n = b.phase === 2 ? 3 : 2;
+    const n = b.phase >= 2 ? 3 : 2;
     const a0 = Math.atan2(player.y-b.y, player.x-b.x);
     for (let k = -n; k <= n; k++){
       const a = a0 + k*.2;
@@ -1161,7 +1161,7 @@ function bossAttack(b, kind){
     sfx.coin();
   } else if (kind === 'rain'){
     banner(b.type === 'algo' ? 'PACKET STORM!' : 'DIVIDENDS!', .9);
-    for (let i = 0; i < (b.phase === 2 ? 7 : 5); i++)
+    for (let i = 0; i < (b.phase >= 2 ? 7 : 5); i++)
       ebullets.push({x: 80+Math.random()*300, y: -6, vx: 0, vy: (95+Math.random()*40)*DIFF, coin:true, r:3, t:0});
   } else if (kind === 'beam'){
     b.beam = {y: player.y, t: -.7};
@@ -1171,11 +1171,11 @@ function bossAttack(b, kind){
     b.spiralN = 14; b.spiralT = 0; b.spiralA = Math.random()*6;
   } else if (kind === 'sweep'){                          // ALGO: moving paywall
     banner('PAYWALL SWEEP!', 1.1);
-    spawnSweep(b.phase === 2 ? 27 : 34);
+    spawnSweep(b.phase >= 3 ? 24 : b.phase === 2 ? 27 : 34);
     sfx.beamFire();
   } else if (kind === 'grid'){                           // ALGO: telegraphed lattice bombs
     banner('GRID LOCK!', .9);
-    const cols = b.phase === 2 ? 4 : 3;
+    const cols = b.phase >= 2 ? 4 : 3;
     for (let c = 0; c < cols; c++)
       for (let r2 = 0; r2 < 3; r2++)
         ebullets.push({x: 60 + c*88 + Math.random()*20, y: 45 + r2*68 + Math.random()*16,
@@ -1192,18 +1192,48 @@ function bossAttack(b, kind){
   } else if (kind === 'swarm'){                          // ALGO: upload reinforcements
     banner('UPLOADING BOTS...', .9);
     spawnSwarm(60 + Math.random()*(GROUND-140));
+  } else if (kind === 'lunge'){                          // SHAREHOLDER: dash across the player's lane
+    banner('BUYOUT LUNGE!', 1);
+    b.lunge = {t: -.5, ty: player.y};
+    sfx.beamCharge();
+  } else if (kind === 'vortex'){                         // SHAREHOLDER: coins converge on your position
+    banner('COIN VORTEX!', .9);
+    const px2 = player.x, py2 = player.y;
+    for (let k2 = 0; k2 < 8; k2++){
+      const a2 = k2*Math.PI/4;
+      ebullets.push({x: px2 + Math.cos(a2)*80,
+                     y: Math.max(20, Math.min(GROUND-10, py2 + Math.sin(a2)*80)),
+                     vx: 0, vy: 0, fuse: .7, coin: true, tx: px2, ty: py2, r: 3, t: 0});
+    }
+    sfx.beamCharge();
+  } else if (kind === 'legal'){                          // SHAREHOLDER: summon counsel
+    banner('LEGAL SHIELD!', 1);
+    spawnLawyer(Math.max(40, b.y - 50), false); spawnLawyer(Math.min(GROUND-40, b.y + 50), false);
+  } else if (kind === 'trace'){                          // ALGO: vertical beam locked to your column
+    banner('PORT TRACE!', .9);
+    b.vbeam = {x: player.x, t: -.65};
+    sfx.beamCharge();
   }
-  const pace = 1.45 - heat*.45;                          // dynamic difficulty on boss cadence
-  if (b.type === 'algo') b.atk = (kind === 'sweep' ? 4.4 : (b.phase === 2 ? 1.6 : 2.3)) * pace;
-  else b.atk = (b.phase === 2 ? 1.4 : 2) * pace;
+  const pace = (1.45 - heat*.45) * (b.phase >= 3 ? .8 : 1);   // dynamic difficulty + desperation
+  const slow = {sweep: 4.4, lunge: 2.8, vortex: 2.4, legal: 3.2, trace: 2.2};
+  if (b.type === 'algo') b.atk = (slow[kind] || (b.phase >= 2 ? 1.6 : 2.3)) * pace;
+  else b.atk = (slow[kind] || (b.phase >= 2 ? 1.4 : 2)) * pace;
 }
 function pickBossAttack(b){
   const r = Math.random();
   if (b.type === 'algo'){
+    if (b.phase >= 3){
+      if (r < .28) return 'trace';
+      if (r < .5)  return 'grid';
+      if (r < .7)  return 'wall';
+      if (r < .88) return 'sweep';
+      return 'swarm';
+    }
     if (b.phase === 2){
-      if (r < .3) return 'grid';
-      if (r < .55) return 'wall';
-      if (r < .78) return 'sweep';
+      if (r < .24) return 'trace';
+      if (r < .46) return 'grid';
+      if (r < .68) return 'wall';
+      if (r < .86) return 'sweep';
       return 'swarm';
     }
     if (b.hp < b.maxhp*.75 && r < .22) return 'sweep';
@@ -1212,10 +1242,19 @@ function pickBossAttack(b){
     return 'swarm';
   }
   const low = b.hp < b.maxhp*.7;
+  if (b.phase >= 3){
+    if (r < .26) return 'lunge';
+    if (r < .48) return 'vortex';
+    if (r < .64) return 'spiral';
+    if (r < .78) return 'beam';
+    if (r < .9)  return 'fan';
+    return 'legal';
+  }
   if (b.phase === 2){
-    if (r < .3) return 'spiral';
-    if (r < .55) return 'beam';
-    if (r < .8) return 'fan';
+    if (r < .22) return 'vortex';
+    if (r < .42) return 'spiral';
+    if (r < .62) return 'beam';
+    if (r < .82) return 'fan';
     return 'rain';
   }
   if (low && r < .3) return 'beam';
@@ -1601,7 +1640,7 @@ function update(dt){
       b.y += ((H/2-10) - b.y) * Math.min(1, dt*1.4);
       if (Math.abs(b.x-(W-70)) < 3 && Math.abs(b.y-(H/2-10)) < 3){ b.entered = true; shake = .5; sfx.bigBoom(); }
     } else {
-      const spd = b.phase === 2 ? 1.35 : 1;
+      const spd = b.phase >= 2 ? 1.35 : 1;
       if (b.type === 'algo'){
         // glitch-teleport between server slots instead of hovering
         if (b.tp){ b.tp.t -= dt; if (b.tp.t <= 0) b.tp = null; }
@@ -1613,16 +1652,30 @@ function update(dt){
           b.x = sp2[0]; b.y = sp2[1];
           burst(b.x, b.y, GRN, 12); sfx.whoosh();
           b.tp = {t: .25};
-          b.tpT = b.phase === 2 ? 1.7 : 2.6;
+          b.tpT = b.phase >= 3 ? 1.2 : b.phase === 2 ? 1.7 : 2.6;
+        }
+      } else if (b.lunge){                               // buyout lunge: dash across and back
+        const L = b.lunge; L.t += dt;
+        if (L.t < 0) shake = Math.max(shake, .08);       // wind-up rumble
+        else {
+          const k = Math.min(1, L.t / 1.1);
+          b.x = k < .5 ? (W-70) - (W-140)*(k/.5) : 70 + (W-140)*((k-.5)/.5);
+          b.y += (L.ty - b.y) * Math.min(1, dt*6);
+          if (k >= 1){ b.lunge = null; b.x = W-70; }
         }
       } else
       b.y = H/2 - 10 + Math.sin(b.t*.9*spd) * 52;
       // phase 2 trigger: MARGIN CALL
-      if (b.phase === 1 && b.hp <= b.maxhp/2){
+      if (b.phase === 1 && b.hp <= b.maxhp*.6){
         b.phase = 2; b.flash = .2; b.tele = 0; b.beam = null;
         banner(b.type === 'algo' ? '⚠ OVERCLOCK ENGAGED! ⚠' : '⚠ MARGIN CALL! ⚠', 2.2);
         sfx.warn(); shake = .6;
         burst(b.x, b.y, b.type === 'algo' ? RED : '#FF2D6C', 26); ring(b.x, b.y, 40);
+      } else if (b.phase === 2 && b.hp <= b.maxhp*.25){
+        b.phase = 3; b.flash = .25; b.tele = 0;
+        banner(b.type === 'algo' ? '⚠ DDoS OVERDRIVE! ⚠' : '⚠ HOSTILE BUYOUT! ⚠', 2.4);
+        sfx.warn(); shake = .8;
+        burst(b.x, b.y, RED, 34); ring(b.x, b.y, 50); ring(b.x, b.y, 34);
       }
       // laser beam
       if (b.beam){
@@ -1633,6 +1686,29 @@ function update(dt){
           if (p.alive && p.x < b.x - 20 && Math.abs(p.y - b.beam.y) < 6) hitPlayer();
         }
         if (b.beam.t >= .4) b.beam = null;
+      }
+      // vertical trace beam (Algorithm)
+      if (b.vbeam){
+        const v = b.vbeam; v.t += dt;
+        if (v.t >= 0 && v.t < .05 && v.t - dt < 0) sfx.beamFire();
+        if (v.t >= 0 && v.t < .35){
+          shake = Math.max(shake, .1);
+          if (p.alive && Math.abs(p.x - v.x) < 7) hitPlayer();
+        }
+        if (v.t >= .35) b.vbeam = null;
+      }
+      // phase-3 desperation drizzle
+      if (b.phase >= 3){
+        b.driz = (b.driz === undefined ? .5 : b.driz) - dt;
+        if (b.driz <= 0){
+          b.driz = b.type === 'algo' ? .45 : .6;
+          if (b.type === 'algo')
+            ebullets.push({x: 40+Math.random()*(W-140), y: -6, vx: 0, vy: (120+Math.random()*40)*DIFF, bit: true, r: 3, t: 0});
+          else {
+            const a3 = Math.random()*6.28;
+            ebullets.push({x: b.x-30, y: b.y, vx: Math.cos(a3)*70*DIFF, vy: Math.sin(a3)*70*DIFF, coin: true, r: 3, t: 0});
+          }
+        }
       }
       // spiral barrage
       if (b.spiralN > 0){
@@ -1650,7 +1726,7 @@ function update(dt){
         const mtx = b.x - 22, mty = b.y - 8;    // mouth
         const a = Math.random()*Math.PI*2, rr = 26 + Math.random()*10;
         parts.push({x: mtx + Math.cos(a)*rr, y: mty + Math.sin(a)*rr,
-                    vx: -Math.cos(a)*rr*3.4, vy: -Math.sin(a)*rr*3.4, t: .22, col: b.phase === 2 ? '#FF2D6C' : AMB});
+                    vx: -Math.cos(a)*rr*3.4, vy: -Math.sin(a)*rr*3.4, t: .22, col: b.phase >= 2 ? '#FF2D6C' : AMB});
         if (b.tele <= 0) bossAttack(b, b.next);
       } else {
         b.atk -= dt;
@@ -1664,7 +1740,7 @@ function update(dt){
         parts.push({x: b.x-24+Math.random()*48, y: b.y-24+Math.random()*30, vx: -15,
                     vy: -30-Math.random()*20, t: .6, col: '#4A5570'});
       // phase 2 money aura
-      if (b.phase === 2 && Math.random() < dt*8)
+      if (b.phase >= 2 && Math.random() < dt*8)
         parts.push({x: b.x-40+Math.random()*80, y: b.y+40, vx: 0, vy: -30-Math.random()*30, t: .8, col: AMB});
       // damage
       for (const s of shots){
@@ -1684,7 +1760,7 @@ function update(dt){
       missiles = missiles.filter(m => !m.dead);
       if (p.alive && Math.abs(b.x-p.x) < b.hw-2 && Math.abs(b.y-p.y) < b.hh-2) hitPlayer();
       if (b.hp <= 0){
-        b.hp = 0; b.dying = .0001; b.beam = null; b.spiralN = 0;
+        b.hp = 0; b.dying = .0001; b.beam = null; b.vbeam = null; b.lunge = null; b.spiralN = 0;
         ebullets = [];
         addScore(5000); pop(b.x, b.y - 46, '+5000');
         sfx.bigBoom();
@@ -1695,13 +1771,19 @@ function update(dt){
   const spawned2 = [];
   for (const b of ebullets){
     b.t += dt;
-    if (b.fuse !== undefined && b.fuse > 0){        // grid-lock charge: telegraph, then burst 4-way
+    if (b.fuse !== undefined && b.fuse > 0){        // telegraphed charge
       b.fuse -= dt;
       if (b.fuse <= 0){
-        for (const [vx, vy] of [[95,0],[-95,0],[0,95],[0,-95]])
-          spawned2.push({x: b.x, y: b.y, vx: vx*DIFF, vy: vy*DIFF, bit: true, r: 3, t: 0});
-        b.dead = true;
-        sfx.rack();
+        if (b.tx !== undefined){                    // vortex: converge on the marked point
+          const a4 = Math.atan2(b.ty - b.y, b.tx - b.x);
+          b.vx = Math.cos(a4)*115*DIFF; b.vy = Math.sin(a4)*115*DIFF;
+          sfx.coin();
+        } else {                                    // grid-lock: burst 4-way
+          for (const [vx, vy] of [[95,0],[-95,0],[0,95],[0,-95]])
+            spawned2.push({x: b.x, y: b.y, vx: vx*DIFF, vy: vy*DIFF, bit: true, r: 3, t: 0});
+          b.dead = true;
+          sfx.rack();
+        }
       }
       continue;
     }
@@ -1924,11 +2006,13 @@ function drawHUD(){
   ctx.fillText(muted ? '♪✕' : '♪', W - 18, 12);
   if (boss && boss.entered && boss.dying <= 0){
     ctx.fillStyle = DK; ctx.fillRect(90, 14, 300, 5);
-    ctx.fillStyle = boss.phase === 2 ? '#FF2D6C' : MAG;
+    ctx.fillStyle = boss.phase >= 3 ? RED : boss.phase === 2 ? '#FF2D6C' : MAG;
     ctx.fillRect(91, 15, 298 * Math.max(0, boss.hp/boss.maxhp), 3);
     ctx.fillStyle = MAG; ctx.font = 'bold 7px monospace';
     const bn = boss.type === 'algo' ? 'THE ALGORITHM' : 'THE SHAREHOLDER';
-    ctx.fillText(boss.phase === 2 ? bn + (boss.type === 'algo' ? ' · OVERCLOCKED' : ' · FURIOUS') : bn, 90, 27);
+    const tag = boss.phase >= 3 ? (boss.type === 'algo' ? ' · OVERDRIVE' : ' · BUYOUT MODE')
+              : boss.phase === 2 ? (boss.type === 'algo' ? ' · OVERCLOCKED' : ' · FURIOUS') : '';
+    ctx.fillText(bn + tag, 90, 27);
   }
   const cw = W/6;
   for (let i = 0; i < 6; i++){
@@ -2208,6 +2292,20 @@ function render(){
         ctx.fillStyle = WHT; ctx.fillRect(0, (bm.y-1)|0, (b.x-26)|0, 3);
       }
     }
+    // vertical trace beam
+    if (b.vbeam){
+      const v = b.vbeam;
+      if (v.t < 0){
+        if (Math.floor(v.t*14) % 2 === 0){
+          ctx.globalAlpha = .6; ctx.fillStyle = GRN;
+          ctx.fillRect((v.x-1)|0, 14, 1, GROUND-14);
+          ctx.globalAlpha = 1;
+        }
+      } else {
+        ctx.fillStyle = GRN; ctx.fillRect((v.x-4)|0, 14, 8, GROUND-14);
+        ctx.fillStyle = WHT; ctx.fillRect((v.x-1)|0, 14, 3, GROUND-14);
+      }
+    }
     // body (sway + telegraph frame + phase palette + death strobing)
     const sway = Math.sin(b.t*1.5) * .03;
     const sets = b.type === 'algo'
@@ -2215,7 +2313,7 @@ function render(){
       : {n: bossN, f: bossF, hit: bossHit};
     let img;
     if (b.flash > 0 || (b.dying > 0 && ((b.dying*10)|0) % 2 === 0)) img = sets.hit;
-    else img = (b.phase === 2 ? sets.f : sets.n)[b.tele > 0 ? 1 : 0];
+    else img = (b.phase >= 2 ? sets.f : sets.n)[b.tele > 0 ? 1 : 0];
     if (b.type === 'algo' && b.tp){                        // teleport: glitch-sliced body
       for (let sl = 0; sl < 6; sl++){
         const sy = (Math.random()*img.height)|0, sh2 = 6 + Math.random()*14;
@@ -2234,7 +2332,7 @@ function render(){
       ctx.restore();
     }
     if (b.flash <= 0 && b.dying <= 0 && b.type === 'share'){
-      const glow = b.phase === 2 ? .75 : .35 + .35 * Math.sin(b.t*7);
+      const glow = b.phase >= 2 ? .75 : .35 + .35 * Math.sin(b.t*7);
       ctx.fillStyle = 'rgba(255,64,64,' + glow.toFixed(2) + ')';
       ctx.fillRect((b.x-b.hw+28)|0, (b.y-b.hh+16+bob2)|0, 8, 4);
       ctx.fillRect((b.x-b.hw+60)|0, (b.y-b.hh+16+bob2)|0, 8, 4);
@@ -2243,14 +2341,14 @@ function render(){
         ctx.fillRect((b.x-b.hw+28)|0, (b.y-b.hh+16+bob2)|0, 8, 4);
         ctx.fillRect((b.x-b.hw+60)|0, (b.y-b.hh+16+bob2)|0, 8, 4);
       }
-      if (b.phase === 2){
+      if (b.phase >= 2){
         ctx.globalAlpha = .12 + .06*Math.sin(b.t*9);
         ctx.fillStyle = '#FF2D6C';
         ctx.beginPath(); ctx.arc(b.x, b.y+bob2, 54, 0, 7); ctx.fill();
         ctx.globalAlpha = 1;
       }
       const fl2 = Math.sin(b.t*9);
-      ctx.fillStyle = b.phase === 2 ? '#FF2D6C' : MAG;
+      ctx.fillStyle = b.phase >= 2 ? '#FF2D6C' : MAG;
       ctx.fillRect((b.x-4+fl2*2)|0, (b.y+bob2+28)|0, 3, 3);
       ctx.fillRect((b.x-2-fl2*2)|0, (b.y+bob2+31)|0, 3, 2);
       if (((perfT*3)|0) % 3 === 0){
@@ -2259,8 +2357,8 @@ function render(){
         ctx.fillRect((b.x+b.hw-8)|0, (b.y-b.hh+66+bob2)|0, 2, 2);
       }
     } else if (b.flash <= 0 && b.dying <= 0){              // THE ALGORITHM décor
-      const glow = b.phase === 2 ? .8 : .4 + .35 * Math.sin(b.t*5);
-      ctx.fillStyle = (b.phase === 2 ? 'rgba(255,64,64,' : 'rgba(76,224,122,') + glow.toFixed(2) + ')';
+      const glow = b.phase >= 2 ? .8 : .4 + .35 * Math.sin(b.t*5);
+      ctx.fillStyle = (b.phase >= 2 ? 'rgba(255,64,64,' : 'rgba(76,224,122,') + glow.toFixed(2) + ')';
       ctx.fillRect((b.x-b.hw+12)|0, (b.y-b.hh+24+bob2)|0, 12, 12);   // matrix eyes
       ctx.fillRect((b.x+b.hw-24)|0, (b.y-b.hh+24+bob2)|0, 12, 12);
       // scrolling LED mouth
@@ -2336,7 +2434,7 @@ function render(){
     if (b.fuse !== undefined && b.fuse > 0){         // grid-lock telegraph: pulsing cross
       const pl = .4 + .6*Math.abs(Math.sin(b.t*10));
       ctx.globalAlpha = pl;
-      ctx.fillStyle = b.fuse < .3 ? RED : GRN;
+      ctx.fillStyle = b.fuse < .3 ? RED : (b.coin ? AMB : GRN);
       ctx.fillRect((b.x-4)|0, b.y|0, 9, 1); ctx.fillRect(b.x|0, (b.y-4)|0, 1, 9);
       ctx.globalAlpha = 1;
       continue;
@@ -2562,6 +2660,7 @@ window.__ff = secs => {
   return window.__dbg;
 };
 
+window.__boss = fn => { if (boss && fn) fn(boss); return boss ? {hp: boss.hp, phase: boss.phase, type: boss.type} : null; };
 window.__intro = s => { if (state === 'intro'){ introT = s; render(); } return state; };
 window.__skip = () => { if (state === 'intro') beginPlay(); return state; };
 window.__go = lv => { level = lv; titleEl.style.display = 'none'; beginPlay(); return window.__ff(0); };
@@ -2569,6 +2668,7 @@ window.__go = lv => { level = lv; titleEl.style.display = 'none'; beginPlay(); r
 window.__test = () => {
   const res = {};
   reset(); state = 'play'; lives = 4;
+  keys.set = {}; keys.vx = 0; keys.vy = 0;              // neutralize any stuck keys
   // A: normal shot kills a drone
   enemies = []; shots = []; ebullets = []; player.invuln = 9; player.x = 30; player.y = 200;
   spawnDrone(100, 0); enemies[0].x = 200; enemies[0].y0 = 100; enemies[0].y = 100; enemies[0].up = ()=>{};
