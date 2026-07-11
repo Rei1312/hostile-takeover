@@ -1553,8 +1553,8 @@ function update(dt){
       const sx = s.x + s.w*.5;                      // collide on bullet center, not left edge
       if (Math.abs(sx - e.x) < e.r+6 && Math.abs(s.y - e.y) < hy+4){
         e.hp -= s.dmg; e.flash = .07;
-        if (s.pierce) (s.hit || (s.hit = new Set())).add(e);   // pierce = one hit per enemy
-        else s.dead = true;
+        if (s.pierce && e.kind !== 'midboss') (s.hit || (s.hit = new Set())).add(e);  // pierce small fry
+        else s.dead = true;                          // mid-bosses are solid too
         burst(s.x, s.y, WHT, 2);
       }
     }
@@ -1668,11 +1668,11 @@ function update(dt){
         parts.push({x: b.x-40+Math.random()*80, y: b.y+40, vx: 0, vy: -30-Math.random()*30, t: .8, col: AMB});
       // damage
       for (const s of shots){
-        if (s.dead || s.bossHit) continue;
+        if (s.dead) continue;
         const sx = s.x + s.w*.5;
         if (Math.abs(sx-b.x) < b.hw-4 && Math.abs(s.y-b.y) < b.hh-4){
           b.hp -= s.dmg; b.flash = .06;
-          if (s.pierce) s.bossHit = true; else s.dead = true;
+          s.dead = true;                             // bosses are solid: even lasers stop here
           burst(s.x, s.y, MAG, 2);
         }
       }
@@ -2640,6 +2640,15 @@ window.__test = () => {
   enemies = []; ebullets = []; caps = [];
   for (let i = 0; i < 10; i++) update(1/60);
   res.shieldDeprecates = player.shield === 0 && lives === l3;
+  // L: lasers collide with bosses instead of passing through
+  enemies = []; shots = []; ebullets = []; player.alive = false; player.respawn = 99;
+  spawnBoss();
+  boss.x = 300; boss.y = 100; boss.entered = true;
+  const bhp = boss.maxhp;
+  shots.push({x: 210, y: 100, vx: 420, vy: 0, w: 26, h: 3, dmg: 2, pierce: true, laser: true});
+  for (let i = 0; i < 25; i++) update(1/60);
+  res.laserStopsAtBoss = boss && boss.hp === bhp - 2 && shots.length === 0;
+  boss = null;
   muted = wasMuted;
   res.allPass = Object.keys(res).every(k => res[k] === true || k === 'allPass');
   reset(); state = 'title';
