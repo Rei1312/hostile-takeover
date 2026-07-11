@@ -984,24 +984,119 @@ const farCv3 = document.createElement('canvas'); farCv3.width = FARW; farCv3.hei
   g.fillStyle = fog; g.fillRect(0, 0, FARW, 64);
 }
 const midCv3 = document.createElement('canvas'); midCv3.width = MIDW; midCv3.height = 112;
-const marq3 = [];
-{
+const marq3 = [], pyr3 = [], orb3 = [], wheel3 = [];
+{ // sunken strip of Vegas/Macau landmarks
   const g = midCv3.getContext('2d');
-  let x = 0, i = 0;
-  while (x < MIDW - 24){
-    const w = 30 + Math.random()*34, h = 40 + Math.random()*64, top = 112 - h;
-    g.fillStyle = '#0A2E3A'; g.fillRect(x, top, w, h);
-    g.fillStyle = '#12404E'; g.fillRect(x, top, w, 2); g.fillRect(x, top, 2, h);
-    // glowing windows in casino colors
+  const BODY = '#0A2E3A', EDGE = '#12404E', DARK = '#071E26', GOLD = '#8A6E1E', GOLD2 = '#B4831E';
+  const winCols = ['rgba(255,79,139,.4)','rgba(93,242,230,.35)','rgba(255,194,75,.4)'];
+  const windows = (x, top, w, h) => {
     for (let c = 0; c < (w-8)/8; c++)
-      for (let wy = top + 8; wy < 106; wy += 9){
-        if (Math.random() > .6) continue;
-        g.fillStyle = ['rgba(255,79,139,.4)','rgba(93,242,230,.35)','rgba(255,194,75,.4)'][(c+wy)%3];
+      for (let wy = top + 6; wy < Math.min(106, top + h - 4); wy += 9){
+        if (Math.random() > .55) continue;
+        g.fillStyle = winCols[(c+wy)%3];
         g.fillRect(x + 4 + c*8, wy, 3, 4);
       }
-    if (h > 56){ marq3.push({x: x + 3, y: top + 4, w: w - 6, i}); }   // marquee chase strip
-    g.fillStyle = '#06181E'; g.fillRect(x + (w/2|0) - 3, 106, 6, 6);  // flooded entrance
-    x += w + 5 + Math.random()*12; i++;
+  };
+  let x = 8, i = 0;
+  const kinds = ['pyramid','block','eiffel','sphere','lotus','block','wheel','campanile','strat','arch','block'];
+  while (x < MIDW - 84){
+    const kind = kinds[i % kinds.length];
+    if (kind === 'pyramid'){                              // Luxor-style black pyramid
+      const w = 64, h = 62, top = 112 - h;
+      for (let r = 0; r < h; r++){
+        const ww = w * (r/h);
+        g.fillStyle = DARK;
+        g.fillRect(x + (w-ww)/2, top + r, Math.max(1, ww), 1);
+      }
+      g.strokeStyle = EDGE; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x + w/2, top); g.lineTo(x, 112); g.moveTo(x + w/2, top); g.lineTo(x + w, 112); g.stroke();
+      g.fillStyle = GOLD2; g.fillRect(x + w/2 - 1, top, 2, 3);
+      pyr3.push({x: x + w/2, y: top});
+      x += w + 14;
+    } else if (kind === 'eiffel'){                        // Paris-style lattice tower
+      const w = 44, h = 88, top = 112 - h, cxm = x + w/2;
+      g.strokeStyle = EDGE; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x + 2, 112); g.quadraticCurveTo(cxm - 8, top + 30, cxm - 1, top); g.stroke();
+      g.beginPath(); g.moveTo(x + w - 2, 112); g.quadraticCurveTo(cxm + 8, top + 30, cxm + 1, top); g.stroke();
+      g.lineWidth = 1; g.strokeStyle = '#0E3644';
+      for (const py of [94, 72, 50]){
+        const hw2 = (112 - py) * .26 + 4;
+        g.beginPath(); g.moveTo(cxm - hw2, py); g.lineTo(cxm + hw2, py); g.stroke();
+      }
+      g.fillStyle = GOLD2; g.fillRect(cxm - 1, top - 6, 2, 6);
+      g.fillStyle = 'rgba(255,194,75,.4)';
+      for (let k = 0; k < 14; k++) g.fillRect((cxm - 12 + Math.random()*24)|0, (top + 14 + Math.random()*64)|0, 1, 1);
+      x += w + 12;
+    } else if (kind === 'sphere'){                        // Sphere-style LED orb
+      const r = 20, cy2 = 112 - r - 4, cxm = x + r + 2;
+      g.fillStyle = DARK;
+      g.fillRect(cxm - 4, 106, 8, 6);
+      g.beginPath(); g.arc(cxm, cy2, r, 0, 7); g.fill();
+      g.strokeStyle = EDGE; g.beginPath(); g.arc(cxm, cy2, r, 0, 7); g.stroke();
+      orb3.push({x: cxm, y: cy2, r});
+      x += r*2 + 16;
+    } else if (kind === 'lotus'){                         // Grand Lisboa-style golden lotus
+      const w = 40, top = 112 - 74, cxm = x + w/2;
+      g.fillStyle = GOLD; g.fillRect(cxm - 5, 86, 10, 26);
+      for (let r = 0; r < 48; r++){
+        const ww = Math.sin(Math.min(1, (r/48)*1.15) * Math.PI) * w;
+        g.fillStyle = GOLD;
+        g.fillRect(cxm - ww/2, top + r, Math.max(2, ww), 1);
+      }
+      g.strokeStyle = GOLD2;
+      for (let k = -2; k <= 2; k++){
+        g.beginPath(); g.moveTo(cxm + k*8, top + 6); g.lineTo(cxm + k*3, 86); g.stroke();
+      }
+      x += w + 12;
+    } else if (kind === 'wheel'){                         // High Roller-style ferris wheel
+      const r = 24, cy2 = 112 - r - 8, cxm = x + r + 4;
+      g.strokeStyle = EDGE; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(cxm - r + 4, 112); g.lineTo(cxm, cy2); g.lineTo(cxm + r - 4, 112); g.stroke();
+      g.lineWidth = 1;
+      wheel3.push({x: cxm, y: cy2, r});
+      x += r*2 + 18;
+    } else if (kind === 'campanile'){                     // Venetian-style palazzo + bell tower
+      const bw = 46, bh = 36, btop = 112 - bh;
+      g.fillStyle = BODY; g.fillRect(x, btop, bw, bh);
+      g.fillStyle = EDGE; g.fillRect(x, btop, bw, 2);
+      for (let ax = x + 4; ax < x + bw - 4; ax += 8){ g.fillStyle = DARK; g.fillRect(ax, 102, 4, 8); }
+      windows(x, btop, bw, bh - 10);
+      const tx3 = x + bw + 4, tw = 12, th = 78, ttop = 112 - th;
+      g.fillStyle = BODY; g.fillRect(tx3, ttop, tw, th);
+      g.fillStyle = EDGE; g.fillRect(tx3, ttop, tw, 1); g.fillRect(tx3, ttop, 1, th);
+      g.fillStyle = DARK; g.fillRect(tx3 + 2, ttop + 4, tw - 4, 8);
+      g.fillStyle = GOLD2;
+      g.beginPath(); g.moveTo(tx3 - 1, ttop); g.lineTo(tx3 + tw/2, ttop - 8); g.lineTo(tx3 + tw + 1, ttop); g.fill();
+      x += bw + tw + 18;
+    } else if (kind === 'strat'){                         // STRAT-style observation tower
+      const cxm = x + 12, h = 92, top = 112 - h;
+      g.fillStyle = BODY; g.fillRect(cxm - 3, top + 12, 6, h - 12);
+      g.fillStyle = DARK; g.beginPath(); g.ellipse(cxm, top + 10, 11, 7, 0, 0, 7); g.fill();
+      g.strokeStyle = EDGE; g.beginPath(); g.ellipse(cxm, top + 10, 11, 7, 0, 0, 7); g.stroke();
+      g.fillStyle = 'rgba(93,242,230,.4)';
+      for (let k = -2; k <= 2; k++) g.fillRect(cxm + k*4 - 1, top + 8, 2, 2);
+      g.fillStyle = GOLD2; g.fillRect(cxm - 1, top - 4, 2, 6);
+      x += 34;
+    } else if (kind === 'arch'){                          // Wynn-style curved glass slab
+      const w = 44, h = 78, top = 112 - h;
+      g.fillStyle = BODY;
+      g.fillRect(x, top + 10, w, h - 10);
+      g.beginPath(); g.arc(x + w/2, top + 10, w/2, Math.PI, 0); g.fill();
+      g.fillStyle = EDGE; g.fillRect(x, top + 10, 2, h - 10);
+      g.fillStyle = 'rgba(18,64,78,.7)';
+      for (let wy = top + 8; wy < 106; wy += 7) g.fillRect(x + 2, wy, w - 4, 1);
+      windows(x, top + 10, w, h - 16);
+      x += w + 12;
+    } else {                                              // marquee block filler
+      const w = 34 + Math.random()*14, h = 44 + Math.random()*40, top = 112 - h;
+      g.fillStyle = BODY; g.fillRect(x, top, w, h);
+      g.fillStyle = EDGE; g.fillRect(x, top, w, 2); g.fillRect(x, top, 2, h);
+      windows(x, top, w, h);
+      if (h > 52) marq3.push({x: x + 3, y: top + 4, w: w - 6, i});
+      g.fillStyle = '#06181E'; g.fillRect(x + (w/2|0) - 3, 106, 6, 6);
+      x += w + 10;
+    }
+    i++;
   }
 }
 const nearCv3 = document.createElement('canvas'); nearCv3.width = NEARW; nearCv3.height = 44;
@@ -2293,6 +2388,49 @@ function drawBG3(){
       ctx.fillStyle = chase[(((perfT*10)|0) + (d/6|0) + mq.i) % 3];
       ctx.fillRect((qx+d)|0, GROUND-112+mq.y, 3, 2);
     }
+  }
+  // Luxor apex beams reaching for the surface
+  for (const py of pyr3){
+    let bx = py.x - towerScroll; if (bx < -80) bx += MIDW;
+    if (bx < -10 || bx > W+10) continue;
+    ctx.globalAlpha = .1 + .05*Math.sin(perfT*2 + py.x);
+    ctx.fillStyle = '#BFF2FF';
+    ctx.beginPath();
+    ctx.moveTo(bx - 2, GROUND-112 + py.y); ctx.lineTo(bx - 7, 16);
+    ctx.lineTo(bx + 7, 16); ctx.lineTo(bx + 2, GROUND-112 + py.y);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // Sphere orbs playing their LED loop
+  for (const ob of orb3){
+    let ox = ob.x - towerScroll; if (ox < -80) ox += MIDW;
+    if (ox < -ob.r || ox > W + ob.r) continue;
+    const oy = GROUND - 112 + ob.y;
+    ctx.globalAlpha = .5;
+    for (let row = -2; row <= 2; row++){
+      const rr = Math.sqrt(Math.max(0, ob.r*ob.r - (row*6)*(row*6))) - 3;
+      for (let d = -rr; d <= rr; d += 5){
+        ctx.fillStyle = ['#FF4F8B','#5DF2E6','#FFC24B','#4CE07A'][Math.abs(((perfT*4 + row + d*.2 + ob.x)|0)) % 4];
+        ctx.fillRect((ox + d)|0, (oy + row*6)|0, 2, 2);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  // ferris wheels slowly turning
+  for (const wh of wheel3){
+    let wx = wh.x - towerScroll; if (wx < -90) wx += MIDW;
+    if (wx < -wh.r || wx > W + wh.r) continue;
+    const wy = GROUND - 112 + wh.y;
+    ctx.strokeStyle = '#12404E'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(wx, wy, wh.r, 0, 7); ctx.stroke();
+    for (let sp = 0; sp < 8; sp++){
+      const a8 = perfT*.35 + sp*Math.PI/4;
+      ctx.beginPath(); ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + Math.cos(a8)*wh.r, wy + Math.sin(a8)*wh.r); ctx.stroke();
+      ctx.fillStyle = ['#FF4F8B','#5DF2E6','#FFC24B'][sp % 3];
+      ctx.fillRect((wx + Math.cos(a8)*wh.r - 1)|0, (wy + Math.sin(a8)*wh.r - 1)|0, 3, 3);
+    }
+    ctx.fillStyle = '#B4831E'; ctx.fillRect((wx-2)|0, (wy-2)|0, 4, 4);
   }
   // caustic light ripples on the seabed
   for (let k = 0; k < 2; k++){
