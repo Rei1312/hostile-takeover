@@ -656,6 +656,40 @@ let paused = false;
 let introT = 0, introChord = 0;
 let level = 1, DIFF = 1;      // DIFF scales enemy bullet speed per sector
 let selIdx = 0, selShake = 0;
+let trans = null;                     // screen-wipe transition {phase, t, cb}
+function transitionTo(cb){
+  if (trans){ if (cb) cb(); return; } // already mid-wipe: apply immediately
+  trans = {phase: 'out', t: 0, cb};
+  sfx.whoosh();
+}
+function drawTrans(){
+  if (!trans) return;
+  const half = .3;
+  trans.t += 1/60;
+  let k;
+  if (trans.phase === 'out'){
+    k = Math.min(1, trans.t / half);
+    if (k >= 1){ if (trans.cb) trans.cb(); trans.cb = null; trans.phase = 'in'; trans.t = 0; }
+  } else {
+    k = 1 - Math.min(1, trans.t / half);
+    if (trans.t >= half){ trans = null; return; }
+  }
+  const bh2 = H / 8;
+  ctx.fillStyle = '#04060C';
+  for (let i = 0; i < 8; i++){          // venetian blinds, alternating directions
+    const w2 = W * k;
+    if (i % 2) ctx.fillRect(W - w2, i*bh2, w2, bh2 + 1);
+    else ctx.fillRect(0, i*bh2, w2, bh2 + 1);
+  }
+  ctx.globalAlpha = .7; ctx.fillStyle = CYAN;
+  for (let i = 0; i < 8; i++){          // glowing leading edges
+    const w2 = W * k;
+    if (w2 <= 2 || w2 >= W - 2) continue;
+    if (i % 2) ctx.fillRect((W - w2)|0, i*bh2, 2, bh2 + 1);
+    else ctx.fillRect((w2 - 2)|0, i*bh2, 2, bh2 + 1);
+  }
+  ctx.globalAlpha = 1;
+}
 let cleared = {};
 try { cleared = JSON.parse(localStorage.getItem('ht-cleared') || '{}'); } catch(e){}
 const LEVELS = [
@@ -2014,9 +2048,9 @@ function update(dt){
   if (winT > 0){
     winT -= dt;
     if (winT <= 0 && state === 'play'){
-      state = 'win'; endT = 0; jingle([72,76,79,84,88], .13, .12);
       cleared[level] = 1;
       try { localStorage.setItem('ht-cleared', JSON.stringify(cleared)); } catch(e){}
+      transitionTo(() => { state = 'win'; endT = 0; jingle([72,76,79,84,88], .13, .12); });
     }
   }
 
@@ -2037,10 +2071,20 @@ function update(dt){
   }
 
   if (p.alive){
+    if (p.flyIn > 0){                                     // launch: swoop in from off-screen
+      p.flyIn -= dt;
+      const k2 = Math.min(1, 1 - p.flyIn / 1.6);
+      p.x = -40 + 90 * (1 - Math.pow(1 - k2, 2));
+      p.y = H/2;
+      p.invuln = Math.max(p.invuln, .6);
+      parts.push({x: p.x-12, y: p.y+(Math.random()-.5)*3, vx: -90-Math.random()*50,
+                  vy: (Math.random()-.5)*10, t: .3, col: Math.random() < .5 ? '#FF9838' : AMB});
+    } else {
     const spd = 110 + p.lv.SPEED*35;
     p.x += keys.vx * spd * dt; p.y += keys.vy * spd * dt;
     p.x = Math.max(10, Math.min(W-40, p.x));
     p.y = Math.max(14, Math.min(GROUND-12, p.y));
+    }
     const vyNow = (p.y - (p.py === undefined ? p.y : p.py)) / Math.max(dt, .0001);
     p.py = p.y;
     p.bank += (Math.max(-1, Math.min(1, vyNow/160)) - p.bank) * Math.min(1, dt*10);
@@ -2056,7 +2100,7 @@ function update(dt){
     }
     p.fireT -= dt;
     const lasing = p.weapon === 'laser' && p.lv.LASER > 0;
-    if (p.fireT <= 0){
+    if (p.fireT <= 0 && p.flyIn <= 0){
       p.fireT = lasing ? (p.lv.LASER >= 3 ? .17 : .2) : .16;
       fireFrom(p.x + 14, p.y);
       for (const o of p.options) fireFrom(o.x + 12, o.y);
@@ -2792,8 +2836,7 @@ function chooseLevel(i){
   if (!L.open){ sfx.hit(); selShake = .6; return; }
   level = L.n;
   sfx.power();
-  state = 'intro'; introT = 0; introChord = 0;
-  setSong('crawl');
+  transitionTo(() => { state = 'intro'; introT = 0; introChord = 0; setSong('crawl'); });
 }
 function drawIntro(){
   ctx.fillStyle = 'rgba(3,4,10,.55)';                  // dim the city for cinema
@@ -2869,8 +2912,8 @@ function render(){
   ctx.save();
   if (shake > 0) ctx.translate((Math.random()-.5)*6*shake*2, (Math.random()-.5)*6*shake*2);
   drawBG();
-  if (state === 'select'){ drawSelect(); ctx.restore(); return; }
-  if (state === 'intro'){ drawIntro(); ctx.restore(); return; }
+  if (state === 'select'){ drawSelect(); drawTrans(); ctx.restore(); return; }
+  if (state === 'intro'){ drawIntro(); drawTrans(); ctx.restore(); return; }
   const p = player;
 
   for (const c of caps){
@@ -3270,6 +3313,18 @@ function render(){
     ctx.fillText(q.txt, q.x|0, q.y|0);
   }
   ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  if (state === 'play' && p.alive && p.flyIn > 0){       // launch card
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.font = 'bold 14px \"Courier New\", monospace';
+    ctx.fillText('SECTOR ' + level + ' · ' + LEVELS[level-1].name, W/2+1, 105);
+    ctx.fillStyle = CYAN;
+    ctx.fillText('SECTOR ' + level + ' · ' + LEVELS[level-1].name, W/2, 104);
+    if (Math.floor(perfT*4) % 2 === 0){
+      ctx.fillStyle = AMB; ctx.font = 'bold 10px monospace';
+      ctx.fillText('GET READY, SHIRANAI HITO', W/2, 124);
+    }
+    ctx.textAlign = 'left';
+  }
   drawHUD();
   ctx.restore();
 
@@ -3321,6 +3376,7 @@ function render(){
     ctx.fillText('A REY@NIU PRODUCTION · JULY 2026', W/2, 212);
     ctx.textAlign = 'left';
   }
+  drawTrans();
 }
 
 // ---------- input ----------
@@ -3339,7 +3395,7 @@ addEventListener('keydown', e => {
     else if (state === 'intro') beginPlay();
     else if (state === 'play' && paused) togglePause();
     else if (state === 'play' && e.key === ' ') activatePower();
-    else if ((state === 'over' || state === 'win') && endT > 1) state = 'select';
+    else if ((state === 'over' || state === 'win') && endT > 1 && !trans) transitionTo(() => { state = 'select'; });
   }
   if (state === 'select'){
     if (e.key === 'ArrowUp')   selIdx = (selIdx + 4) % 5;
@@ -3377,7 +3433,7 @@ stage.addEventListener('touchstart', e => {
     }
     if (cornerTap(g)) continue;
     if (paused && state === 'play'){ togglePause(); continue; }         // tap anywhere resumes
-    if (state === 'over' || state === 'win'){ if (endT > 1) state = 'select'; continue; }
+    if (state === 'over' || state === 'win'){ if (endT > 1 && !trans) transitionTo(() => { state = 'select'; }); continue; }
     if (state !== 'play') continue;
     if (g.y > GROUND){ activatePower(); continue; }
     if (moveTouch === null){ moveTouch = {id: t.identifier, x: g.x, y: g.y}; }
@@ -3386,7 +3442,7 @@ stage.addEventListener('touchstart', e => {
 }, {passive: false});
 stage.addEventListener('touchmove', e => {
   e.preventDefault();
-  if (moveTouch === null || !player.alive || paused) return;
+  if (moveTouch === null || !player.alive || paused || player.flyIn > 0) return;
   for (const t of e.changedTouches){
     if (t.identifier !== moveTouch.id) continue;
     const g = toGame(t.clientX, t.clientY);
@@ -3416,13 +3472,13 @@ stage.addEventListener('mousedown', e => {
   }
   if (cornerTap(g)) return;
   if (paused && state === 'play'){ togglePause(); return; }
-  if (state === 'over' || state === 'win'){ if (endT > 1) state = 'select'; return; }
+  if (state === 'over' || state === 'win'){ if (endT > 1 && !trans) transitionTo(() => { state = 'select'; }); return; }
   if (state !== 'play') return;
   if (g.y > GROUND){ activatePower(); return; }
   mouseDown = true; mx2 = g.x; my2 = g.y;
 });
 stage.addEventListener('mousemove', e => {
-  if (!mouseDown || state !== 'play' || !player.alive || paused) return;
+  if (!mouseDown || state !== 'play' || !player.alive || paused || player.flyIn > 0) return;
   const g = toGame(e.clientX, e.clientY);
   player.x = Math.max(10, Math.min(W-40, player.x + (g.x-mx2)*1.25));
   player.y = Math.max(14, Math.min(GROUND-12, player.y + (g.y-my2)*1.25));
@@ -3435,8 +3491,17 @@ function startGame(){
   titleEl.style.display = 'none';
   state = 'select';
 }
-function beginPlay(){
-  reset(); state = 'play';
+function beginPlay(instant){
+  if (instant){
+    reset(); state = 'play';
+    if (levelT === 0){ player.flyIn = 1.6; player.x = -40; }
+    return;
+  }
+  if (trans) return;
+  transitionTo(() => {
+    reset(); state = 'play';
+    if (levelT === 0){ player.flyIn = 1.6; player.x = -40; }   // launch sequence
+  });
 }
 document.getElementById('startBtn').addEventListener('click', startGame);
 titleEl.addEventListener('touchend', e => { e.preventDefault(); startGame(); }, {passive: false});
@@ -3456,8 +3521,8 @@ window.__ff = secs => {
 
 window.__boss = fn => { if (boss && fn) fn(boss); return boss ? {hp: boss.hp, phase: boss.phase, type: boss.type} : null; };
 window.__intro = s => { if (state === 'intro'){ introT = s; render(); } return state; };
-window.__skip = () => { if (state === 'intro') beginPlay(); return state; };
-window.__go = lv => { level = lv; titleEl.style.display = 'none'; beginPlay(); return window.__ff(0); };
+window.__skip = () => { if (state === 'intro') beginPlay(true); return state; };
+window.__go = lv => { level = lv; titleEl.style.display = 'none'; beginPlay(true); return window.__ff(0); };
 // collision self-tests (debug)
 window.__test = () => {
   const res = {};
